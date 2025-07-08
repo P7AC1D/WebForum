@@ -1,0 +1,6 @@
+@WebForum.Api_HostAddress = http://localhost:5043
+
+GET {{WebForum.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
