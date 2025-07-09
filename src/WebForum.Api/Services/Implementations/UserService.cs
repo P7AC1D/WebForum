@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
+using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
 using WebForum.Api.Services.Interfaces;
 
@@ -29,11 +30,14 @@ public class UserService : IUserService
     if (userId <= 0)
       throw new ArgumentException("User ID must be greater than zero", nameof(userId));
 
-    var user = await _context.Users
+    var userEntity = await _context.Users
         .FirstOrDefaultAsync(u => u.Id == userId);
 
-    if (user == null)
+    if (userEntity == null)
       throw new KeyNotFoundException($"User with ID {userId} not found");
+
+    // Convert to domain model
+    var user = userEntity.ToDomainModel();
 
     // Get user statistics
     var postCount = await _context.Posts
@@ -89,10 +93,13 @@ public class UserService : IUserService
     var totalItems = await query.CountAsync();
     var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-    var posts = await query
+    var postEntities = await query
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .ToListAsync();
+
+    // Convert DTO entities to domain models
+    var posts = postEntities.Select(pe => pe.ToDomainModel()).ToList();
 
     return new PagedResult<Post>
     {
@@ -129,8 +136,10 @@ public class UserService : IUserService
     if (userId <= 0)
       return null;
 
-    return await _context.Users
+    var userEntity = await _context.Users
         .FirstOrDefaultAsync(u => u.Id == userId);
+
+    return userEntity?.ToDomainModel();
   }
 
   /// <summary>
@@ -143,8 +152,10 @@ public class UserService : IUserService
     if (string.IsNullOrWhiteSpace(email))
       return null;
 
-    return await _context.Users
+    var userEntity = await _context.Users
         .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+
+    return userEntity?.ToDomainModel();
   }
 
   /// <summary>
@@ -157,7 +168,9 @@ public class UserService : IUserService
     if (string.IsNullOrWhiteSpace(username))
       return null;
 
-    return await _context.Users
+    var userEntity = await _context.Users
         .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+    return userEntity?.ToDomainModel();
   }
 }

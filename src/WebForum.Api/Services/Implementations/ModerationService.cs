@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
+using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
 using WebForum.Api.Services.Interfaces;
 
@@ -68,7 +69,8 @@ public class ModerationService : IModerationService
       CreatedAt = DateTimeOffset.UtcNow
     };
 
-    _context.PostTags.Add(postTag);
+    var postTagEntity = PostTagEntity.FromDomainModel(postTag);
+    _context.PostTags.Add(postTagEntity);
     await _context.SaveChangesAsync();
 
     return new ModerationResponse
@@ -216,10 +218,13 @@ public class ModerationService : IModerationService
     if (userId <= 0)
       return false;
 
-    var user = await _context.Users
+    var userEntity = await _context.Users
         .FirstOrDefaultAsync(u => u.Id == userId);
 
-    return user?.Role == UserRoles.Moderator;
+    if (userEntity == null) return false;
+
+    var user = userEntity.ToDomainModel();
+    return user.Role == UserRoles.Moderator;
   }
 
   /// <summary>
@@ -232,9 +237,11 @@ public class ModerationService : IModerationService
     if (postId <= 0)
       return Enumerable.Empty<PostTag>();
 
-    return await _context.PostTags
+    var postTagEntities = await _context.PostTags
         .Where(pt => pt.PostId == postId)
         .OrderByDescending(pt => pt.CreatedAt)
         .ToListAsync();
+
+    return postTagEntities.Select(pte => pte.ToDomainModel());
   }
 }

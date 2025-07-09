@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
+using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
 using WebForum.Api.Services.Interfaces;
 
@@ -66,7 +67,8 @@ public class LikeService : ILikeService
         UserId = userId,
         CreatedAt = DateTimeOffset.UtcNow
       };
-      _context.Likes.Add(like);
+      var likeEntity = LikeEntity.FromDomainModel(like);
+      _context.Likes.Add(likeEntity);
       isLiked = true;
     }
 
@@ -164,9 +166,11 @@ public class LikeService : ILikeService
     if (postId <= 0)
       return Enumerable.Empty<Like>();
 
-    return await _context.Likes
+    var likeEntities = await _context.Likes
         .Where(l => l.PostId == postId)
         .OrderByDescending(l => l.CreatedAt)
         .ToListAsync();
+
+    return likeEntities.Select(le => le.ToDomainModel());
   }
 }

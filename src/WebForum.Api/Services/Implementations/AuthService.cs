@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
+using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
 using WebForum.Api.Services.Interfaces;
 
@@ -61,10 +62,14 @@ public class AuthService : IAuthService
 
       // Create new user entity using registration model
       var user = registration.ToUser(passwordHash);
+      var userEntity = UserEntity.FromDomainModel(user);
 
       // Save to database
-      _context.Users.Add(user);
+      _context.Users.Add(userEntity);
       await _context.SaveChangesAsync();
+
+      // Set the generated ID back to the domain model
+      user.Id = userEntity.Id;
 
       _logger.LogInformation("User registered successfully with ID: {UserId}", user.Id);
 

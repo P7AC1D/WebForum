@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
+using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
 using WebForum.Api.Services.Interfaces;
 
@@ -56,10 +57,13 @@ public class CommentService : ICommentService
     var totalItems = await query.CountAsync();
     var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-    var comments = await query
+    var commentEntities = await query
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .ToListAsync();
+
+    // Convert DTO entities to domain models
+    var comments = commentEntities.Select(ce => ce.ToDomainModel()).ToList();
 
     return new PagedResult<Comment>
     {
@@ -108,13 +112,16 @@ public class CommentService : ICommentService
     if (!authorExists)
       throw new ArgumentException($"Author with ID {authorId} does not exist", nameof(authorId));
 
-    // Convert to Comment entity
+    // Convert to Comment domain model first, then to DTO entity
     var comment = createComment.ToComment(authorId, postId);
+    var commentEntity = CommentEntity.FromDomainModel(comment);
 
     // Add to database
-    _context.Comments.Add(comment);
+    _context.Comments.Add(commentEntity);
     await _context.SaveChangesAsync();
 
+    // Set the generated ID back to the domain model
+    comment.Id = commentEntity.Id;
     return comment;
   }
 

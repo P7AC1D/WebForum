@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
+using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
 using WebForum.Api.Services.Interfaces;
 
@@ -93,10 +94,13 @@ public class PostService : IPostService
     var totalItems = await query.CountAsync();
     var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-    var posts = await query
+    var postEntities = await query
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .ToListAsync();
+
+    // Convert DTO entities to domain models
+    var posts = postEntities.Select(pe => pe.ToDomainModel()).ToList();
 
     return new PagedResult<Post>
     {
@@ -122,13 +126,13 @@ public class PostService : IPostService
     if (postId <= 0)
       throw new ArgumentException("Post ID must be greater than zero", nameof(postId));
 
-    var post = await _context.Posts
+    var postEntity = await _context.Posts
         .FirstOrDefaultAsync(p => p.Id == postId);
 
-    if (post == null)
+    if (postEntity == null)
       throw new KeyNotFoundException($"Post with ID {postId} not found");
 
-    return post;
+    return postEntity.ToDomainModel();
   }
 
   /// <summary>
@@ -156,13 +160,16 @@ public class PostService : IPostService
     if (!authorExists)
       throw new ArgumentException($"Author with ID {authorId} does not exist", nameof(authorId));
 
-    // Convert to Post entity
+    // Convert to Post domain model first, then to DTO entity
     var post = createPost.ToPost(authorId);
+    var postEntity = PostEntity.FromDomainModel(post);
 
     // Add to database
-    _context.Posts.Add(post);
+    _context.Posts.Add(postEntity);
     await _context.SaveChangesAsync();
 
+    // Set the generated ID back to the domain model
+    post.Id = postEntity.Id;
     return post;
   }
 
