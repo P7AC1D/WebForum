@@ -74,27 +74,6 @@ public class CommentService : ICommentService
   }
 
   /// <summary>
-  /// Get a specific comment by ID with author information
-  /// </summary>
-  /// <param name="commentId">Comment ID to retrieve</param>
-  /// <returns>Comment details with author information</returns>
-  /// <exception cref="KeyNotFoundException">Thrown when comment is not found</exception>
-  /// <exception cref="ArgumentException">Thrown when comment ID is invalid</exception>
-  public async Task<Comment> GetCommentByIdAsync(int commentId)
-  {
-    if (commentId <= 0)
-      throw new ArgumentException("Comment ID must be greater than zero", nameof(commentId));
-
-    var comment = await _context.Comments
-        .FirstOrDefaultAsync(c => c.Id == commentId);
-
-    if (comment == null)
-      throw new KeyNotFoundException($"Comment with ID {commentId} not found");
-
-    return comment;
-  }
-
-  /// <summary>
   /// Add a comment to a specific post
   /// </summary>
   /// <param name="postId">Post ID to comment on</param>

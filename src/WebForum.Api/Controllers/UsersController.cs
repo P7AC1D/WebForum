@@ -8,7 +8,7 @@ namespace WebForum.Api.Controllers;
 /// Users controller for managing user profiles and user-related data
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/users")]
 [Produces("application/json")]
 public class UsersController : ControllerBase
 {

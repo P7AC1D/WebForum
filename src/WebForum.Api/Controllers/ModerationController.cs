@@ -10,7 +10,7 @@ namespace WebForum.Api.Controllers;
 /// Moderation controller for moderator-specific actions like tagging posts
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/moderation")]
 [Produces("application/json")]
 [Authorize(Roles = "Moderator")]
 public class ModerationController : ControllerBase
@@ -42,26 +42,56 @@ public class ModerationController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 403)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> TagPost(int id)
+  public async Task<IActionResult> TagPost(int id)
   {
-    // TODO: Implement post tagging logic for moderators
-    // - Validate post ID (id > 0, return 400 if invalid)
-    // - Find post by ID using _context.Posts.FirstOrDefaultAsync(p => p.Id == id)
-    // - Return 404 if post not found
-    // - Check if post is already tagged as "misleading or false information"
-    // - Return 400 if post is already tagged with this specific tag
-    // - Extract moderator user ID from JWT claims using User.FindFirst(ClaimTypes.NameIdentifier)
-    // - Create new PostTag entity with:
-    //   * PostId = id
-    //   * Tag = "misleading or false information"
-    //   * TaggedByUserId = moderator user ID
-    //   * TaggedAt = current UTC timestamp
-    // - Save to database using _context.PostTags.AddAsync() and _context.SaveChangesAsync()
-    // - Return ModerationResponse with post ID, tag applied, and moderator info
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log moderation action for audit trail and regulatory compliance
+    try
+    {
+      _logger.LogInformation("Tagging post with ID: {PostId}", id);
 
-    throw new NotImplementedException("Tag post logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      // Extract moderator user ID from JWT claims
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int moderatorId))
+      {
+        _logger.LogWarning("Could not extract moderator ID from JWT claims");
+        return Unauthorized("Invalid authentication token");
+      }
+
+      var response = await _moderationService.TagPostAsync(id, moderatorId);
+
+      _logger.LogInformation("Post {PostId} tagged successfully by moderator {ModeratorId}", id, moderatorId);
+      return Ok(response);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (InvalidOperationException ex)
+    {
+      _logger.LogWarning("Invalid operation: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+      _logger.LogWarning("Unauthorized access: {Message}", ex.Message);
+      return Forbid(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error tagging post with ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while tagging the post");
+    }
   }
 
   /// <summary>
@@ -82,22 +112,51 @@ public class ModerationController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 403)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> RemoveTagFromPost(int id)
+  public async Task<IActionResult> RemoveTagFromPost(int id)
   {
-    // TODO: Implement post tag removal logic for moderators
-    // - Validate post ID (id > 0, return 400 if invalid)
-    // - Find post by ID using _context.Posts.FirstOrDefaultAsync(p => p.Id == id)
-    // - Return 404 if post not found
-    // - Find existing "misleading or false information" tag for the post
-    // - Return 404 if tag not found
-    // - Extract moderator user ID from JWT claims for audit trail
-    // - Remove the PostTag entity from database
-    // - Save changes using _context.SaveChangesAsync()
-    // - Return ModerationResponse with post ID, tag removed status, and moderator info
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log moderation action for audit trail and regulatory compliance
+    try
+    {
+      _logger.LogInformation("Removing tag from post with ID: {PostId}", id);
 
-    throw new NotImplementedException("Remove tag logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      // Extract moderator user ID from JWT claims
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int moderatorId))
+      {
+        _logger.LogWarning("Could not extract moderator ID from JWT claims");
+        return Unauthorized("Invalid authentication token");
+      }
+
+      var response = await _moderationService.RemoveTagFromPostAsync(id, moderatorId);
+
+      _logger.LogInformation("Tag removed from post {PostId} by moderator {ModeratorId}", id, moderatorId);
+      return Ok(response);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post or tag not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+      _logger.LogWarning("Unauthorized access: {Message}", ex.Message);
+      return Forbid(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error removing tag from post with ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while removing the tag from the post");
+    }
   }
 
   /// <summary>
@@ -117,22 +176,37 @@ public class ModerationController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 403)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> GetTaggedPosts(
+  public async Task<IActionResult> GetTaggedPosts(
       [FromQuery] int page = 1,
       [FromQuery] int pageSize = 10)
   {
-    // TODO: Implement get tagged posts logic for moderators
-    // - Validate pagination parameters using PagedResult<T>.ValidatePaginationParameters(page, pageSize, 50)
-    // - Return 400 with validation errors if parameters invalid
-    // - Query posts that have "misleading or false information" tags
-    // - Join with PostTags table and filter by tag = "misleading or false information"
-    // - Include post details, author information, and tagging details (tagged by whom, when)
-    // - Apply pagination with Skip((page-1)*pageSize).Take(pageSize)
-    // - Get total count for pagination metadata
-    // - Return PagedResult<TaggedPost> with complete moderation information
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log access for audit trail
+    try
+    {
+      _logger.LogInformation("Getting tagged posts, page: {Page}, pageSize: {PageSize}", page, pageSize);
 
-    throw new NotImplementedException("Get tagged posts logic not yet implemented");
+      // Validate pagination parameters
+      var validationErrors = PagedResult<TaggedPost>.ValidatePaginationParameters(page, pageSize, 50);
+      if (validationErrors.Any())
+      {
+        _logger.LogWarning("Pagination validation failed: {Errors}", string.Join(", ", validationErrors));
+        return BadRequest(new { Errors = validationErrors });
+      }
+
+      var result = await _moderationService.GetTaggedPostsAsync(page, pageSize);
+
+      _logger.LogInformation("Retrieved {Count} tagged posts (page {Page} of {TotalPages})",
+          result.Items.Count(), page, result.TotalPages);
+      return Ok(result);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error retrieving tagged posts");
+      return StatusCode(500, "An error occurred while retrieving tagged posts");
+    }
   }
 }

@@ -10,7 +10,7 @@ namespace WebForum.Api.Controllers;
 /// Posts controller for managing forum posts with filtering, sorting, and pagination
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/posts")]
 [Produces("application/json")]
 public class PostsController : ControllerBase
 {

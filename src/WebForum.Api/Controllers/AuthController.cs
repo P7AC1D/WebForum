@@ -9,7 +9,7 @@ namespace WebForum.Api.Controllers;
 /// Authentication controller for user registration, login, and token management
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 [Produces("application/json")]
 public class AuthController(IAuthService authService, ILogger<AuthController> logger) : ControllerBase
 {

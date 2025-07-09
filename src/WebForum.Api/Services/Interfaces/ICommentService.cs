@@ -20,15 +20,6 @@ public interface ICommentService
   Task<PagedResult<Comment>> GetPostCommentsAsync(int postId, int page, int pageSize, string sortOrder);
 
   /// <summary>
-  /// Get a specific comment by ID with author information
-  /// </summary>
-  /// <param name="commentId">Comment ID to retrieve</param>
-  /// <returns>Comment details with author information</returns>
-  /// <exception cref="KeyNotFoundException">Thrown when comment is not found</exception>
-  /// <exception cref="ArgumentException">Thrown when comment ID is invalid</exception>
-  Task<Comment> GetCommentByIdAsync(int commentId);
-
-  /// <summary>
   /// Add a comment to a specific post
   /// </summary>
   /// <param name="postId">Post ID to comment on</param>
