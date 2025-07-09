@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using WebForum.Api.Data;
 using WebForum.Api.Models;
+using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Controllers;
 
@@ -14,12 +14,20 @@ namespace WebForum.Api.Controllers;
 [Produces("application/json")]
 public class PostsController : ControllerBase
 {
-  private readonly ForumDbContext _context;
+  private readonly IPostService _postService;
+  private readonly ICommentService _commentService;
+  private readonly ILikeService _likeService;
   private readonly ILogger<PostsController> _logger;
 
-  public PostsController(ForumDbContext context, ILogger<PostsController> logger)
+  public PostsController(
+      IPostService postService,
+      ICommentService commentService,
+      ILikeService likeService,
+      ILogger<PostsController> logger)
   {
-    _context = context;
+    _postService = postService;
+    _commentService = commentService;
+    _likeService = likeService;
     _logger = logger;
   }
 
@@ -42,7 +50,7 @@ public class PostsController : ControllerBase
   [ProducesResponseType(typeof(PagedResult<Post>), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> GetPosts(
+  public async Task<IActionResult> GetPosts(
       [FromQuery] int page = 1,
       [FromQuery] int pageSize = 10,
       [FromQuery] int? authorId = null,
@@ -52,30 +60,57 @@ public class PostsController : ControllerBase
       [FromQuery] string sortBy = "date",
       [FromQuery] string sortOrder = "desc")
   {
-    // TODO: Implement posts retrieval logic with comprehensive filtering
-    // - Validate pagination parameters using PagedResult<T>.ValidatePaginationParameters(page, pageSize, 50)
-    // - Return 400 with validation errors if parameters invalid
-    // - Validate date range (dateFrom <= dateTo if both provided)
-    // - Validate sortBy parameter ("date" or "likeCount", case-insensitive)
-    // - Validate sortOrder parameter ("asc" or "desc", case-insensitive)
-    // - Build filtered query based on parameters:
-    //   * Start with _context.Posts.AsQueryable()
-    //   * Filter by authorId if provided: .Where(p => p.AuthorId == authorId)
-    //   * Filter by date range if provided: .Where(p => p.CreatedAt >= dateFrom && p.CreatedAt <= dateTo)
-    //   * Filter by tags if provided: split comma-separated values, join with PostTags table
-    // - Apply sorting based on sortBy parameter:
-    //   * "date": Order by CreatedAt
-    //   * "likeCount": Order by calculated like count from Likes table
-    // - Apply sortOrder (ascending or descending)
-    // - Get total count before pagination for metadata
-    // - Apply pagination with Skip((page-1)*pageSize).Take(pageSize)
-    // - Include author information in the query results
-    // - Calculate like counts for each post efficiently
-    // - Return PagedResult<Post>.Create(posts, totalCount, page, pageSize)
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log information for monitoring and debugging
+    try
+    {
+      _logger.LogInformation("Getting posts with filters - page: {Page}, pageSize: {PageSize}, authorId: {AuthorId}, sortBy: {SortBy}, sortOrder: {SortOrder}",
+          page, pageSize, authorId, sortBy, sortOrder);
 
-    throw new NotImplementedException("Get posts logic not yet implemented");
+      // Validate pagination parameters
+      var validationErrors = PagedResult<Post>.ValidatePaginationParameters(page, pageSize, 50);
+      if (validationErrors.Any())
+      {
+        _logger.LogWarning("Pagination validation failed: {Errors}", string.Join(", ", validationErrors));
+        return BadRequest(new { Errors = validationErrors });
+      }
+
+      // Validate date range
+      if (dateFrom.HasValue && dateTo.HasValue && dateFrom > dateTo)
+      {
+        _logger.LogWarning("Invalid date range: dateFrom {DateFrom} is after dateTo {DateTo}", dateFrom, dateTo);
+        return BadRequest("DateFrom must be before or equal to DateTo");
+      }
+
+      // Validate sortBy parameter
+      var validSortBy = new[] { "date", "likecount" };
+      if (!validSortBy.Contains(sortBy.ToLower()))
+      {
+        _logger.LogWarning("Invalid sortBy parameter: {SortBy}", sortBy);
+        return BadRequest("SortBy must be 'date' or 'likeCount'");
+      }
+
+      // Validate sortOrder parameter
+      var validSortOrders = new[] { "asc", "desc" };
+      if (!validSortOrders.Contains(sortOrder.ToLower()))
+      {
+        _logger.LogWarning("Invalid sortOrder parameter: {SortOrder}", sortOrder);
+        return BadRequest("SortOrder must be 'asc' or 'desc'");
+      }
+
+      var result = await _postService.GetPostsAsync(page, pageSize, authorId, dateFrom, dateTo, tags, sortBy, sortOrder);
+
+      _logger.LogInformation("Retrieved {PostCount} posts successfully", result.Items.Count);
+      return Ok(result);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error retrieving posts");
+      return StatusCode(500, "An error occurred while retrieving posts");
+    }
   }
 
   /// <summary>
@@ -92,23 +127,38 @@ public class PostsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> GetPost(int id)
+  public async Task<IActionResult> GetPost(int id)
   {
-    // TODO: Implement get single post logic with comprehensive details
-    // - Validate input (id > 0, return 400 if invalid)
-    // - Find post by ID using _context.Posts.FirstOrDefaultAsync(p => p.Id == id)
-    // - Return 404 if post not found
-    // - Include author information from User table
-    // - Calculate like count using _context.Likes.CountAsync(l => l.PostId == id)
-    // - Calculate comment count using _context.Comments.CountAsync(c => c.PostId == id)
-    // - Include associated tags from PostTag table if any exist
-    // - Include comments for the post with author information
-    // - Populate all Post model properties including calculated fields
-    // - Return Post entity with 200 status
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log information for monitoring and debugging
+    try
+    {
+      _logger.LogInformation("Getting post with ID: {PostId}", id);
 
-    throw new NotImplementedException("Get post logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      var post = await _postService.GetPostByIdAsync(id);
+
+      _logger.LogInformation("Post retrieved successfully: {PostId}", id);
+      return Ok(post);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error retrieving post with ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while retrieving the post");
+    }
   }
 
   /// <summary>
@@ -126,25 +176,46 @@ public class PostsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> CreatePost([FromBody] CreatePost createPost)
+  public async Task<IActionResult> CreatePost([FromBody] CreatePost createPost)
   {
-    // TODO: Implement post creation logic with authentication
-    // - Validate input data using model validation attributes
-    // - Return 400 with validation errors if data invalid
-    // - Extract user ID from JWT claims using User.FindFirst(ClaimTypes.NameIdentifier)
-    // - Return 401 if user ID cannot be extracted
-    // - Create new Post entity with:
-    //   * AuthorId from JWT claims
-    //   * Title and Content from createPost
-    //   * CreatedAt and UpdatedAt as current UTC timestamp
-    // - Save to database using _context.Posts.AddAsync() and _context.SaveChangesAsync()
-    // - Retrieve the created post with generated ID
-    // - Return Post entity with 201 status and Location header
-    // - Handle validation errors and return 400 with ProblemDetails
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log post creation for audit and monitoring
+    try
+    {
+      _logger.LogInformation("Creating new post");
 
-    throw new NotImplementedException("Create post logic not yet implemented");
+      if (createPost == null)
+        return BadRequest("Post data is required");
+
+      // Validate input data
+      var validationErrors = createPost.Validate();
+      if (validationErrors.Any())
+      {
+        _logger.LogWarning("Post validation failed: {Errors}", string.Join(", ", validationErrors));
+        return BadRequest(new { Errors = validationErrors });
+      }
+
+      // Extract user ID from JWT claims
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+      {
+        _logger.LogWarning("Could not extract user ID from JWT claims");
+        return Unauthorized("Invalid authentication token");
+      }
+
+      var post = await _postService.CreatePostAsync(createPost, userId);
+
+      _logger.LogInformation("Post created successfully with ID: {PostId}", post.Id);
+      return CreatedAtAction(nameof(GetPost), new { id = post.Id }, post);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Post creation validation error: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error creating post");
+      return StatusCode(500, "An error occurred while creating the post");
+    }
   }
 
   /// <summary>
@@ -164,23 +235,52 @@ public class PostsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> LikePost(int id)
+  public async Task<IActionResult> LikePost(int id)
   {
-    // TODO: Implement like post logic
-    // - Validate post ID (id > 0, return 400 if invalid)
-    // - Find post by ID using _context.Posts.FirstOrDefaultAsync(p => p.Id == id)
-    // - Return 404 if post not found
-    // - Extract user ID from JWT claims using User.FindFirst(ClaimTypes.NameIdentifier)
-    // - Return 400 if user is trying to like their own post
-    // - Check if user has already liked the post
-    // - If already liked, remove the like (unlike)
-    // - If not liked, add a new like
-    // - Get updated like count
-    // - Return LikeResponse with postId, isLiked status, and likeCount
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log like/unlike action for audit
+    try
+    {
+      _logger.LogInformation("Processing like/unlike for post ID: {PostId}", id);
 
-    throw new NotImplementedException("Like post logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      // Extract user ID from JWT claims
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+      {
+        _logger.LogWarning("Could not extract user ID from JWT claims");
+        return Unauthorized("Invalid authentication token");
+      }
+
+      var result = await _likeService.ToggleLikeAsync(id, userId);
+
+      _logger.LogInformation("Like/unlike processed successfully for post {PostId}, isLiked: {IsLiked}, likeCount: {LikeCount}",
+          id, result.IsLiked, result.LikeCount);
+      return Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (InvalidOperationException ex)
+    {
+      _logger.LogWarning("Invalid like operation: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error processing like for post ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while processing the like");
+    }
   }
 
   /// <summary>
@@ -200,22 +300,47 @@ public class PostsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> UnlikePost(int id)
+  public async Task<IActionResult> UnlikePost(int id)
   {
-    // TODO: Implement unlike post logic
-    // - Validate post ID (id > 0, return 400 if invalid)
-    // - Find post by ID using _context.Posts.FirstOrDefaultAsync(p => p.Id == id)
-    // - Return 404 if post not found
-    // - Extract user ID from JWT claims using User.FindFirst(ClaimTypes.NameIdentifier)
-    // - Find existing like using _context.Likes.FirstOrDefaultAsync(l => l.PostId == id && l.UserId == userId)
-    // - Return 404 if like not found
-    // - Remove the like from database
-    // - Get updated like count
-    // - Return LikeResponse with postId, isLiked = false, and likeCount
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log unlike action for audit
+    try
+    {
+      _logger.LogInformation("Processing unlike for post ID: {PostId}", id);
 
-    throw new NotImplementedException("Unlike post logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      // Extract user ID from JWT claims
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+      {
+        _logger.LogWarning("Could not extract user ID from JWT claims");
+        return Unauthorized("Invalid authentication token");
+      }
+
+      var result = await _likeService.UnlikePostAsync(id, userId);
+
+      _logger.LogInformation("Unlike processed successfully for post {PostId}, likeCount: {LikeCount}",
+          id, result.LikeCount);
+      return Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post or like not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error processing unlike for post ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while processing the unlike");
+    }
   }
 
   /// <summary>
@@ -235,29 +360,59 @@ public class PostsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> GetPostComments(
+  public async Task<IActionResult> GetPostComments(
       int id,
       [FromQuery] int page = 1,
       [FromQuery] int pageSize = 10,
       [FromQuery] string sortOrder = "asc")
   {
-    // TODO: Implement get post comments logic with pagination
-    // - Validate post ID (id > 0, return 400 if invalid)
-    // - Validate post exists using _context.Posts.AnyAsync(p => p.Id == id)
-    // - Return 404 if post not found
-    // - Validate pagination parameters using PagedResult<T>.ValidatePaginationParameters(page, pageSize, 50)
-    // - Return 400 with validation errors if parameters invalid
-    // - Validate sortOrder parameter ("asc" or "desc", case-insensitive)
-    // - Retrieve comments for the post using _context.Comments.Where(c => c.PostId == id)
-    // - Include author information from User table for each comment
-    // - Apply sorting by CreatedAt based on sortOrder parameter
-    // - Get total count before pagination for metadata
-    // - Apply pagination with Skip((page-1)*pageSize).Take(pageSize)
-    // - Return PagedResult<Comment>.Create(comments, totalCount, page, pageSize)
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log information for monitoring and debugging
+    try
+    {
+      _logger.LogInformation("Getting comments for post ID: {PostId}, page: {Page}, pageSize: {PageSize}, sortOrder: {SortOrder}",
+          id, page, pageSize, sortOrder);
 
-    throw new NotImplementedException("Get post comments logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      // Validate pagination parameters
+      var validationErrors = PagedResult<Comment>.ValidatePaginationParameters(page, pageSize, 50);
+      if (validationErrors.Any())
+      {
+        _logger.LogWarning("Pagination validation failed: {Errors}", string.Join(", ", validationErrors));
+        return BadRequest(new { Errors = validationErrors });
+      }
+
+      // Validate sort order
+      var validSortOrders = new[] { "asc", "desc", "oldest", "newest" };
+      if (!validSortOrders.Contains(sortOrder.ToLower()))
+      {
+        _logger.LogWarning("Invalid sort order: {SortOrder}", sortOrder);
+        return BadRequest("Sort order must be 'asc', 'desc', 'oldest', or 'newest'");
+      }
+
+      var result = await _commentService.GetPostCommentsAsync(id, page, pageSize, sortOrder);
+
+      _logger.LogInformation("Retrieved {CommentCount} comments for post ID: {PostId}", result.Items.Count, id);
+      return Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error retrieving comments for post ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while retrieving comments");
+    }
   }
 
   /// <summary>
@@ -278,26 +433,58 @@ public class PostsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> CreateComment(
+  public async Task<IActionResult> CreateComment(
       int id,
       [FromBody] CreateComment createComment)
   {
-    // TODO: Implement comment creation logic with comprehensive validation
-    // - Validate post ID (id > 0, return 400 if invalid)
-    // - Validate post exists using _context.Posts.AnyAsync(p => p.Id == id)
-    // - Return 404 if post not found
-    // - Validate input data using createComment.Validate()
-    // - Return 400 with validation errors if data invalid
-    // - Extract user ID from JWT claims using User.FindFirst(ClaimTypes.NameIdentifier)
-    // - Return 401 if user ID cannot be extracted
-    // - Create new Comment entity using createComment.ToComment(userId, id)
-    // - Save to database using _context.Comments.AddAsync() and _context.SaveChangesAsync()
-    // - Retrieve the created comment with author information
-    // - Return Comment entity with 201 status and Location header
-    // - Handle validation errors and return 400 with ProblemDetails
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log comment creation for audit and monitoring
+    try
+    {
+      _logger.LogInformation("Creating comment for post ID: {PostId}", id);
 
-    throw new NotImplementedException("Create comment logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      if (createComment == null)
+        return BadRequest("Comment data is required");
+
+      // Validate input data
+      var validationErrors = createComment.Validate();
+      if (validationErrors.Any())
+      {
+        _logger.LogWarning("Comment validation failed: {Errors}", string.Join(", ", validationErrors));
+        return BadRequest(new { Errors = validationErrors });
+      }
+
+      // Extract user ID from JWT claims
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+      {
+        _logger.LogWarning("Could not extract user ID from JWT claims");
+        return Unauthorized("Invalid authentication token");
+      }
+
+      var comment = await _commentService.CreateCommentAsync(id, createComment, userId);
+
+      _logger.LogInformation("Comment created successfully with ID: {CommentId} for post {PostId}", comment.Id, id);
+      return CreatedAtAction(nameof(GetPostComments), new { id = id }, comment);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Comment creation validation error: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error creating comment for post ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while creating the comment");
+    }
   }
 }

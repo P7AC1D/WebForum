@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WebForum.Api.Data;
 using WebForum.Api.Models;
+using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Controllers;
 
@@ -11,9 +11,9 @@ namespace WebForum.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class AuthController(ForumDbContext context, ILogger<AuthController> logger) : ControllerBase
+public class AuthController(IAuthService authService, ILogger<AuthController> logger) : ControllerBase
 {
-  private readonly ForumDbContext _context = context;
+  private readonly IAuthService _authService = authService;
   private readonly ILogger<AuthController> _logger = logger;
 
   /// <summary>
@@ -28,17 +28,43 @@ public class AuthController(ForumDbContext context, ILogger<AuthController> logg
   [ProducesResponseType(typeof(AuthResponse), 201)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> Register([FromBody] Registration registration)
+  public async Task<IActionResult> Register([FromBody] Registration registration)
   {
-    // TODO: Implement user registration logic
-    // - Validate input using registration.Validate()
-    // - Check if username/email already exists
-    // - Hash password using BCrypt
-    // - Create user record using registration.ToUser(passwordHash)
-    // - Generate JWT token
-    // - Return AuthResponse.FromUser(user, token, expiresIn)
+    try
+    {
+      _logger.LogInformation("User registration attempt for email: {Email}", registration?.Email);
 
-    throw new NotImplementedException("Registration logic not yet implemented");
+      if (registration == null)
+        return BadRequest("Registration data is required");
+
+      // Validate input
+      var validationErrors = registration.Validate();
+      if (validationErrors.Any())
+      {
+        _logger.LogWarning("Registration validation failed: {Errors}", string.Join(", ", validationErrors));
+        return BadRequest(new { Errors = validationErrors });
+      }
+
+      var result = await _authService.RegisterAsync(registration);
+
+      _logger.LogInformation("User registered successfully with ID: {UserId}", result.User.Id);
+      return Created($"/api/users/{result.User.Id}", result);
+    }
+    catch (InvalidOperationException ex)
+    {
+      _logger.LogWarning("Registration failed: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Registration validation error: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error during user registration");
+      return StatusCode(500, "An error occurred during registration");
+    }
   }
 
   /// <summary>
@@ -55,16 +81,43 @@ public class AuthController(ForumDbContext context, ILogger<AuthController> logg
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> Login([FromBody] Login login)
+  public async Task<IActionResult> Login([FromBody] Login login)
   {
-    // TODO: Implement user login logic
-    // - Validate input using login.Validate()
-    // - Find user by email
-    // - Verify password hash using BCrypt
-    // - Generate JWT token
-    // - Return AuthResponse.FromUser(user, token, expiresIn)
+    try
+    {
+      _logger.LogInformation("User login attempt for email: {Email}", login?.Email);
 
-    throw new NotImplementedException("Login logic not yet implemented");
+      if (login == null)
+        return BadRequest("Login data is required");
+
+      // Validate input
+      var validationErrors = login.Validate();
+      if (validationErrors.Any())
+      {
+        _logger.LogWarning("Login validation failed: {Errors}", string.Join(", ", validationErrors));
+        return BadRequest(new { Errors = validationErrors });
+      }
+
+      var result = await _authService.LoginAsync(login);
+
+      _logger.LogInformation("User logged in successfully: {UserId}", result.User.Id);
+      return Ok(result);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+      _logger.LogWarning("Login failed: {Message}", ex.Message);
+      return Unauthorized(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Login validation error: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error during user login");
+      return StatusCode(500, "An error occurred during login");
+    }
   }
 
   /// <summary>
@@ -81,38 +134,34 @@ public class AuthController(ForumDbContext context, ILogger<AuthController> logg
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> Refresh([FromBody] RefreshToken refreshToken)
+  public async Task<IActionResult> Refresh([FromBody] RefreshToken refreshToken)
   {
-    // TODO: Implement token refresh logic
-    // - Validate input using refreshToken.Validate()
-    // - Parse and validate JWT token
-    // - Extract user information from token claims
-    // - Generate new JWT token
-    // - Return AuthResponse.FromUser(user, newToken, expiresIn)
+    try
+    {
+      _logger.LogInformation("Token refresh attempt");
 
-    throw new NotImplementedException("Token refresh logic not yet implemented");
-  }
+      if (refreshToken == null)
+        return BadRequest("Refresh token data is required");
 
-  /// <summary>
-  /// Logout user and invalidate tokens
-  /// </summary>
-  /// <returns>No content response</returns>
-  /// <response code="204">Successfully logged out</response>
-  /// <response code="401">Invalid or missing token</response>
-  /// <response code="500">Internal server error</response>
-  [HttpPost("logout")]
-  [Authorize]
-  [ProducesResponseType(204)]
-  [ProducesResponseType(typeof(ProblemDetails), 401)]
-  [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> Logout()
-  {
-    // TODO: Implement logout logic
-    // - Extract user ID from JWT claims
-    // - Invalidate refresh tokens in database
-    // - Add token to blacklist if implementing token blacklisting
-    // - Return 204 No Content
+      var result = await _authService.RefreshTokenAsync(refreshToken);
 
-    throw new NotImplementedException("Logout logic not yet implemented");
+      _logger.LogInformation("Token refreshed successfully for user: {UserId}", result.User.Id);
+      return Ok(result);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+      _logger.LogWarning("Token refresh failed: {Message}", ex.Message);
+      return Unauthorized(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Token refresh validation error: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error during token refresh");
+      return StatusCode(500, "An error occurred during token refresh");
+    }
   }
 }

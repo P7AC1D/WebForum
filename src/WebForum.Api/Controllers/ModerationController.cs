@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using WebForum.Api.Data;
 using WebForum.Api.Models;
+using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Controllers;
 
@@ -15,12 +15,12 @@ namespace WebForum.Api.Controllers;
 [Authorize(Roles = "Moderator")]
 public class ModerationController : ControllerBase
 {
-  private readonly ForumDbContext _context;
+  private readonly IModerationService _moderationService;
   private readonly ILogger<ModerationController> _logger;
 
-  public ModerationController(ForumDbContext context, ILogger<ModerationController> logger)
+  public ModerationController(IModerationService moderationService, ILogger<ModerationController> logger)
   {
-    _context = context;
+    _moderationService = moderationService;
     _logger = logger;
   }
 

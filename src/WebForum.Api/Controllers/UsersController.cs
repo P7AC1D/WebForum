@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebForum.Api.Data;
 using WebForum.Api.Models;
+using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Controllers;
 
@@ -13,12 +12,12 @@ namespace WebForum.Api.Controllers;
 [Produces("application/json")]
 public class UsersController : ControllerBase
 {
-  private readonly ForumDbContext _context;
+  private readonly IUserService _userService;
   private readonly ILogger<UsersController> _logger;
 
-  public UsersController(ForumDbContext context, ILogger<UsersController> logger)
+  public UsersController(IUserService userService, ILogger<UsersController> logger)
   {
-    _context = context;
+    _userService = userService;
     _logger = logger;
   }
 
@@ -36,21 +35,38 @@ public class UsersController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> GetUser(int id)
+  public async Task<IActionResult> GetUser(int id)
   {
-    // TODO: Implement get user profile logic
-    // - Validate input (id > 0)
-    // - Find user by ID using _context.Users.FirstOrDefaultAsync(u => u.Id == id)
-    // - Return 404 if user not found
-    // - Get user statistics efficiently:
-    //   * Post count: _context.Posts.CountAsync(p => p.AuthorId == id)
-    //   * Comment count: _context.Comments.CountAsync(c => c.AuthorId == id)
-    //   * Likes received: _context.Likes.CountAsync(l => _context.Posts.Any(p => p.Id == l.PostId && p.AuthorId == id))
-    // - Return UserInfo.ForPublicProfile(user, postCount, commentCount, likesReceived)
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log information and warning messages appropriately
+    try
+    {
+      _logger.LogInformation("Getting user profile for ID: {UserId}", id);
 
-    throw new NotImplementedException("Get user profile logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid user ID provided: {UserId}", id);
+        return BadRequest("User ID must be greater than zero");
+      }
+
+      var userProfile = await _userService.GetUserProfileAsync(id);
+
+      _logger.LogInformation("User profile retrieved successfully for ID: {UserId}", id);
+      return Ok(userProfile);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("User not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error retrieving user profile for ID: {UserId}", id);
+      return StatusCode(500, "An error occurred while retrieving the user profile");
+    }
   }
 
   /// <summary>
@@ -70,38 +86,63 @@ public class UsersController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> GetUserPosts(
+  public async Task<IActionResult> GetUserPosts(
       int id,
       [FromQuery] int page = 1,
       [FromQuery] int pageSize = 10,
       [FromQuery] string sortOrder = "desc")
   {
-    // TODO: Implement get user posts logic
-    // - Validate user exists using _context.Users.AnyAsync(u => u.Id == id)
-    // - Return 404 if user not found
-    // - Validate pagination parameters:
-    //   * page >= 1 (return 400 if invalid)
-    //   * pageSize between 1-50 (return 400 if invalid)
-    // - Validate sortOrder parameter:
-    //   * Must be "asc" or "desc" (case-insensitive, return 400 if invalid)
-    // - Query posts by user ID with efficient database operations:
-    //   * Use _context.Posts.Where(p => p.AuthorId == id)
-    //   * Include author information for response
-    //   * Calculate like counts: _context.Likes.Count(l => l.PostId == post.Id)
-    //   * Calculate comment counts: _context.Comments.Count(c => c.PostId == post.Id)
-    // - Apply sorting by CreatedAt based on sortOrder parameter
-    // - Apply pagination with Skip((page-1)*pageSize).Take(pageSize)
-    // - Get total count for pagination metadata
-    // - Return PagedResult<Post> with:
-    //   * Posts collection with all Post model properties
-    //   * Current page number
-    //   * Page size
-    //   * Total count of user's posts
-    //   * Total pages calculation
-    //   * HasNext and HasPrevious flags
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log appropriate information for monitoring and debugging
+    try
+    {
+      _logger.LogInformation("Getting posts for user ID: {UserId}, page: {Page}, pageSize: {PageSize}, sortOrder: {SortOrder}",
+          id, page, pageSize, sortOrder);
 
-    throw new NotImplementedException("Get user posts logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid user ID provided: {UserId}", id);
+        return BadRequest("User ID must be greater than zero");
+      }
+
+      // Validate pagination parameters
+      if (page < 1)
+      {
+        _logger.LogWarning("Invalid page number: {Page}", page);
+        return BadRequest("Page number must be 1 or greater");
+      }
+
+      if (pageSize < 1 || pageSize > 50)
+      {
+        _logger.LogWarning("Invalid page size: {PageSize}", pageSize);
+        return BadRequest("Page size must be between 1 and 50");
+      }
+
+      // Validate sort order
+      var validSortOrders = new[] { "asc", "desc", "oldest", "newest" };
+      if (!validSortOrders.Contains(sortOrder.ToLower()))
+      {
+        _logger.LogWarning("Invalid sort order: {SortOrder}", sortOrder);
+        return BadRequest("Sort order must be 'asc', 'desc', 'oldest', or 'newest'");
+      }
+
+      var result = await _userService.GetUserPostsAsync(id, page, pageSize, sortOrder);
+
+      _logger.LogInformation("Retrieved {PostCount} posts for user ID: {UserId}", result.Items.Count, id);
+      return Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("User not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error retrieving posts for user ID: {UserId}", id);
+      return StatusCode(500, "An error occurred while retrieving user posts");
+    }
   }
 }

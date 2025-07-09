@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using WebForum.Api.Data;
 using WebForum.Api.Models;
+using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Controllers;
 
@@ -14,12 +14,12 @@ namespace WebForum.Api.Controllers;
 [Produces("application/json")]
 public class CommentsController : ControllerBase
 {
-  private readonly ForumDbContext _context;
+  private readonly ICommentService _commentService;
   private readonly ILogger<CommentsController> _logger;
 
-  public CommentsController(ForumDbContext context, ILogger<CommentsController> logger)
+  public CommentsController(ICommentService commentService, ILogger<CommentsController> logger)
   {
-    _context = context;
+    _commentService = commentService;
     _logger = logger;
   }
 
@@ -37,17 +37,37 @@ public class CommentsController : ControllerBase
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public Task<IActionResult> GetComment(int id)
+  public async Task<IActionResult> GetComment(int id)
   {
-    // TODO: Implement get comment logic
-    // - Validate comment ID (id > 0, return 400 if invalid)
-    // - Find comment by ID using _context.Comments.FirstOrDefaultAsync(c => c.Id == id)
-    // - Return 404 if comment not found
-    // - Include author information from User table
-    // - Return Comment entity with 200 status
-    // - Handle exceptions and return 500 with ProblemDetails
-    // - Log information for monitoring
+    try
+    {
+      _logger.LogInformation("Getting comment with ID: {CommentId}", id);
 
-    throw new NotImplementedException("Get comment logic not yet implemented");
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid comment ID: {CommentId}", id);
+        return BadRequest("Comment ID must be greater than zero");
+      }
+
+      var comment = await _commentService.GetCommentByIdAsync(id);
+
+      _logger.LogInformation("Comment retrieved successfully: {CommentId}", id);
+      return Ok(comment);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Comment not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error retrieving comment with ID: {CommentId}", id);
+      return StatusCode(500, "An error occurred while retrieving the comment");
+    }
   }
 }
