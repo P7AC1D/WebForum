@@ -26,6 +26,11 @@ public class CommentResponse
   public int AuthorId { get; set; }
 
   /// <summary>
+  /// Username of the comment author
+  /// </summary>
+  public string AuthorUsername { get; set; } = string.Empty;
+
+  /// <summary>
   /// When the comment was created
   /// </summary>
   public DateTimeOffset CreatedAt { get; set; }
@@ -34,8 +39,9 @@ public class CommentResponse
   /// Creates a CommentResponse from a Comment domain model
   /// </summary>
   /// <param name="comment">Comment domain model</param>
+  /// <param name="authorUsername">Username of the comment author</param>
   /// <returns>CommentResponse for API consumption</returns>
-  public static CommentResponse FromComment(Comment comment)
+  public static CommentResponse FromComment(Comment comment, string authorUsername = "")
   {
     return new CommentResponse
     {
@@ -43,6 +49,7 @@ public class CommentResponse
       Content = comment.Content,
       PostId = comment.PostId,
       AuthorId = comment.AuthorId,
+      AuthorUsername = authorUsername,
       CreatedAt = comment.CreatedAt
     };
   }

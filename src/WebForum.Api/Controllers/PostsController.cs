@@ -388,8 +388,16 @@ public class PostsController : ControllerBase
 
       var result = await _commentService.GetPostCommentsAsync(id, page, pageSize, sortOrder);
 
-      // Convert to response models
-      var responseItems = result.Items.Select(comment => CommentResponse.FromComment(comment)).ToList();
+      // Get usernames for all comment authors in batch for performance
+      var commentAuthorIds = result.Items.Select(c => c.AuthorId).Distinct();
+      var usernames = await _userService.GetUsernamesByIdsAsync(commentAuthorIds);
+
+      // Convert to response models with author usernames
+      var responseItems = result.Items.Select(comment => 
+      {
+        var authorUsername = usernames.GetValueOrDefault(comment.AuthorId, "Unknown User");
+        return CommentResponse.FromComment(comment, authorUsername);
+      }).ToList();
 
       var responseResult = new PagedResult<CommentResponse>
       {
@@ -475,8 +483,12 @@ public class PostsController : ControllerBase
 
       var comment = await _commentService.CreateCommentAsync(id, createComment, userId);
 
-      // Convert to response model
-      var response = CommentResponse.FromComment(comment);
+      // Get author username for the newly created comment
+      var usernames = await _userService.GetUsernamesByIdsAsync(new[] { userId });
+      var authorUsername = usernames.GetValueOrDefault(userId, "Unknown User");
+
+      // Convert to response model with author username
+      var response = CommentResponse.FromComment(comment, authorUsername);
 
       _logger.LogInformation("Comment created successfully with ID: {CommentId} for post {PostId}", comment.Id, id);
       return CreatedAtAction(nameof(GetPostComments), new { id = id }, response);
