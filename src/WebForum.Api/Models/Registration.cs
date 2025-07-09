@@ -48,8 +48,7 @@ public class Registration
       Email = Email,
       PasswordHash = passwordHash,
       Role = Role ?? UserRoles.User, // Default role for new registrations if not specified
-      CreatedAt = DateTimeOffset.UtcNow,
-      UpdatedAt = DateTimeOffset.UtcNow
+      CreatedAt = DateTimeOffset.UtcNow
     };
   }
 

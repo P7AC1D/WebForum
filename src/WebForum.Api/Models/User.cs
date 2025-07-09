@@ -22,5 +22,4 @@ public class User
   public UserRoles Role { get; set; } = UserRoles.User;
 
   public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-  public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

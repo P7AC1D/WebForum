@@ -52,8 +52,7 @@ public class CreateComment
       Content = Content.Trim(),
       AuthorId = authorId,
       PostId = postId,
-      CreatedAt = now,
-      UpdatedAt = now
+      CreatedAt = now
     };
   }
 }

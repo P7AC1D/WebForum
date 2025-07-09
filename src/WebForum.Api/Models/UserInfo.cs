@@ -63,8 +63,7 @@ public class UserInfo
       Username = user.Username,
       Email = user.Email,
       Role = user.Role.ToString(),
-      CreatedAt = user.CreatedAt,
-      LastActive = user.UpdatedAt
+      CreatedAt = user.CreatedAt
     };
   }
 
@@ -85,7 +84,6 @@ public class UserInfo
       Email = null, // Exclude email from public profiles
       Role = user.Role.ToString(),
       CreatedAt = user.CreatedAt,
-      LastActive = user.UpdatedAt,
       PostCount = postCount,
       CommentCount = commentCount,
       LikesReceived = likesReceived
@@ -105,8 +103,7 @@ public class UserInfo
       Username = user.Username,
       Email = null,
       Role = user.Role.ToString(),
-      CreatedAt = user.CreatedAt,
-      LastActive = user.UpdatedAt
+      CreatedAt = user.CreatedAt
     };
   }
 }

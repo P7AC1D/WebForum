@@ -61,8 +61,7 @@ public class CreatePost
       Title = Title.Trim(),
       Content = Content.Trim(),
       AuthorId = authorId,
-      CreatedAt = now,
-      UpdatedAt = now
+      CreatedAt = now
     };
   }
 }

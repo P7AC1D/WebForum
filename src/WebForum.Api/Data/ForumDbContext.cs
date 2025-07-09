@@ -22,7 +22,6 @@ public class ForumDbContext(DbContextOptions<ForumDbContext> options) : DbContex
       entity.HasIndex(e => e.Username).IsUnique();
       entity.HasIndex(e => e.Email).IsUnique();
       entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-      entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
     });
 
     // Post configuration
@@ -33,7 +32,6 @@ public class ForumDbContext(DbContextOptions<ForumDbContext> options) : DbContex
       entity.HasIndex(e => e.AuthorId);
       entity.HasIndex(e => new { e.AuthorId, e.CreatedAt }); // Composite index for author + date queries
       entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-      entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
       // Foreign key relationship
       entity.HasOne<User>()
@@ -51,7 +49,6 @@ public class ForumDbContext(DbContextOptions<ForumDbContext> options) : DbContex
       entity.HasIndex(e => e.CreatedAt);
       entity.HasIndex(e => new { e.PostId, e.CreatedAt }); // Composite index for post + date queries
       entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-      entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
       // Foreign key relationships
       entity.HasOne<Post>()
