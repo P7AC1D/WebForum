@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 using System.Text;
 using WebForum.Api.Data;
 
@@ -9,6 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Configure routing options for case-insensitive routes
+builder.Services.Configure<RouteOptions>(options =>
+{
+    options.LowercaseUrls = true;
+    options.LowercaseQueryStrings = true;
+});
 
 // Add Entity Framework
 builder.Services.AddDbContext<ForumDbContext>(options =>
@@ -60,6 +69,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
   app.MapOpenApi();
+  app.MapScalarApiReference(options =>
+  {
+      options.Title = "Web Forum API";
+      options.OpenApiRoutePattern = "/openapi/v1.json";
+  }).WithName("scalar-docs").ExcludeFromDescription();
 }
 
 app.UseHttpsRedirection();

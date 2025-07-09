@@ -500,3 +500,14 @@ Icon?
 
 # Application specific
 appsettings.local.json
+
+# Docker and Database
+*.sql
+backup_*.sql
+docker-compose.override.yml
+.env
+.env.local
+
+# Database backups and temp files
+db-backups/
+*.dump
