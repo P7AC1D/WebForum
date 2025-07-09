@@ -55,4 +55,11 @@ public interface IUserService
   /// <param name="username">Username to search for</param>
   /// <returns>User entity or null if not found</returns>
   Task<User?> GetUserByUsernameAsync(string username);
+
+  /// <summary>
+  /// Get usernames for multiple user IDs efficiently
+  /// </summary>
+  /// <param name="userIds">Collection of user IDs to retrieve usernames for</param>
+  /// <returns>Dictionary mapping user IDs to usernames</returns>
+  Task<Dictionary<int, string>> GetUsernamesByIdsAsync(IEnumerable<int> userIds);
 }

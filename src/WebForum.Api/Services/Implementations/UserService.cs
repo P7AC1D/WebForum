@@ -173,4 +173,27 @@ public class UserService : IUserService
 
     return userEntity?.ToDomainModel();
   }
+
+  /// <summary>
+  /// Get usernames for multiple user IDs efficiently
+  /// </summary>
+  /// <param name="userIds">Collection of user IDs to retrieve usernames for</param>
+  /// <returns>Dictionary mapping user IDs to usernames</returns>
+  public async Task<Dictionary<int, string>> GetUsernamesByIdsAsync(IEnumerable<int> userIds)
+  {
+    if (userIds == null || !userIds.Any())
+      return new Dictionary<int, string>();
+
+    var distinctIds = userIds.Where(id => id > 0).Distinct().ToList();
+    
+    if (!distinctIds.Any())
+      return new Dictionary<int, string>();
+
+    var userEntities = await _context.Users
+        .Where(u => distinctIds.Contains(u.Id))
+        .Select(u => new { u.Id, u.Username })
+        .ToListAsync();
+
+    return userEntities.ToDictionary(u => u.Id, u => u.Username);
+  }
 }

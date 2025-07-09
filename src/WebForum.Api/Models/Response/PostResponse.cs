@@ -46,14 +46,20 @@ public class PostResponse
   public bool IsTagged { get; set; }
 
   /// <summary>
+  /// Username of the post author
+  /// </summary>
+  public string AuthorUsername { get; set; } = string.Empty;
+
+  /// <summary>
   /// Creates a PostResponse from a Post domain model
   /// </summary>
   /// <param name="post">Post domain model</param>
   /// <param name="commentCount">Number of comments on the post</param>
   /// <param name="likeCount">Number of likes on the post</param>
   /// <param name="isTagged">Whether the post has been tagged by moderators</param>
+  /// <param name="authorUsername">Username of the post author</param>
   /// <returns>PostResponse for API consumption</returns>
-  public static PostResponse FromPost(Post post, int commentCount = 0, int likeCount = 0, bool isTagged = false)
+  public static PostResponse FromPost(Post post, int commentCount = 0, int likeCount = 0, bool isTagged = false, string authorUsername = "")
   {
     return new PostResponse
     {
@@ -64,7 +70,8 @@ public class PostResponse
       CreatedAt = post.CreatedAt,
       CommentCount = commentCount,
       LikeCount = likeCount,
-      IsTagged = isTagged
+      IsTagged = isTagged,
+      AuthorUsername = authorUsername
     };
   }
 }

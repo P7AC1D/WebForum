@@ -20,6 +20,7 @@ public class PostsController : ControllerBase
   private readonly ICommentService _commentService;
   private readonly ILikeService _likeService;
   private readonly IModerationService _moderationService;
+  private readonly IUserService _userService;
   private readonly ILogger<PostsController> _logger;
 
   public PostsController(
@@ -27,12 +28,14 @@ public class PostsController : ControllerBase
       ICommentService commentService,
       ILikeService likeService,
       IModerationService moderationService,
+      IUserService userService,
       ILogger<PostsController> logger)
   {
     _postService = postService;
     _commentService = commentService;
     _likeService = likeService;
     _moderationService = moderationService;
+    _userService = userService;
     _logger = logger;
   }
 
@@ -103,6 +106,10 @@ public class PostsController : ControllerBase
 
       var result = await _postService.GetPostsAsync(page, pageSize, authorId, dateFrom, dateTo, tags, sortBy, sortOrder);
 
+      // Get usernames for all authors in batch for performance
+      var authorIds = result.Items.Select(p => p.AuthorId).Distinct();
+      var usernames = await _userService.GetUsernamesByIdsAsync(authorIds);
+
       // Convert to response models with computed properties
       var responseItems = new List<PostResponse>();
       foreach (var post in result.Items)
@@ -110,8 +117,9 @@ public class PostsController : ControllerBase
         var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
         var likeCount = await GetLikeCountForPostAsync(post.Id);
         var isTagged = await _moderationService.IsPostTaggedAsync(post.Id);
+        var authorUsername = usernames.GetValueOrDefault(post.AuthorId, "Unknown User");
 
-        responseItems.Add(PostResponse.FromPost(post, commentCount, likeCount, isTagged));
+        responseItems.Add(PostResponse.FromPost(post, commentCount, likeCount, isTagged, authorUsername));
       }
 
       var responseResult = new PagedResult<PostResponse>
@@ -172,8 +180,12 @@ public class PostsController : ControllerBase
       var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
       var likeCount = await GetLikeCountForPostAsync(post.Id);
       var isTagged = await _moderationService.IsPostTaggedAsync(post.Id);
+      
+      // Get author username
+      var usernames = await _userService.GetUsernamesByIdsAsync(new[] { post.AuthorId });
+      var authorUsername = usernames.GetValueOrDefault(post.AuthorId, "Unknown User");
 
-      var response = PostResponse.FromPost(post, commentCount, likeCount, isTagged);
+      var response = PostResponse.FromPost(post, commentCount, likeCount, isTagged, authorUsername);
 
       _logger.LogInformation("Post retrieved successfully: {PostId}", id);
       return Ok(response);
@@ -237,8 +249,12 @@ public class PostsController : ControllerBase
 
       var post = await _postService.CreatePostAsync(createPost, userId);
 
+      // Get author username for the newly created post
+      var usernames = await _userService.GetUsernamesByIdsAsync(new[] { userId });
+      var authorUsername = usernames.GetValueOrDefault(userId, "Unknown User");
+
       // Convert to response model with computed properties (new post has 0 comments/likes and is not tagged)
-      var response = PostResponse.FromPost(post, 0, 0, false);
+      var response = PostResponse.FromPost(post, 0, 0, false, authorUsername);
 
       _logger.LogInformation("Post created successfully with ID: {PostId}", post.Id);
       return CreatedAtAction(nameof(GetPost), new { id = post.Id }, response);
