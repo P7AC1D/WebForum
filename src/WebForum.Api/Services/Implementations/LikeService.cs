@@ -86,49 +86,6 @@ public class LikeService : ILikeService
   }
 
   /// <summary>
-  /// Remove like from a post (explicit unlike operation)
-  /// </summary>
-  /// <param name="postId">Post ID to unlike</param>
-  /// <param name="userId">User ID performing the action</param>
-  /// <returns>Like response with updated status and count</returns>
-  /// <exception cref="KeyNotFoundException">Thrown when post or like is not found</exception>
-  /// <exception cref="ArgumentException">Thrown when IDs are invalid</exception>
-  public async Task<LikeResponse> UnlikePostAsync(int postId, int userId)
-  {
-    if (postId <= 0)
-      throw new ArgumentException("Post ID must be greater than zero", nameof(postId));
-
-    if (userId <= 0)
-      throw new ArgumentException("User ID must be greater than zero", nameof(userId));
-
-    // Check if post exists
-    var postExists = await _context.Posts.AnyAsync(p => p.Id == postId);
-    if (!postExists)
-      throw new KeyNotFoundException($"Post with ID {postId} not found");
-
-    // Find the existing like
-    var existingLike = await _context.Likes
-        .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
-
-    if (existingLike == null)
-      throw new KeyNotFoundException($"Like not found for post {postId} by user {userId}");
-
-    // Remove the like
-    _context.Likes.Remove(existingLike);
-    await _context.SaveChangesAsync();
-
-    // Get updated like count
-    var likeCount = await _context.Likes.CountAsync(l => l.PostId == postId);
-
-    return new LikeResponse
-    {
-      PostId = postId,
-      IsLiked = false,
-      LikeCount = likeCount
-    };
-  }
-
-  /// <summary>
   /// Check if a user has liked a specific post
   /// </summary>
   /// <param name="postId">Post ID to check</param>

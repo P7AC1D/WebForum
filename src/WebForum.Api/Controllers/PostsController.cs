@@ -316,66 +316,6 @@ public class PostsController : ControllerBase
   }
 
   /// <summary>
-  /// Remove like from a post
-  /// </summary>
-  /// <param name="id">Post ID to unlike</param>
-  /// <returns>Updated like status and count</returns>
-  /// <response code="200">Like removed successfully</response>
-  /// <response code="401">User not authenticated</response>
-  /// <response code="404">Post not found or like not found</response>
-  /// <response code="400">Invalid post ID</response>
-  /// <response code="500">Internal server error</response>
-  [HttpDelete("{id:int}/like")]
-  [Authorize]
-  [ProducesResponseType(typeof(Models.Response.LikeResponse), 200)]
-  [ProducesResponseType(typeof(ProblemDetails), 401)]
-  [ProducesResponseType(typeof(ProblemDetails), 404)]
-  [ProducesResponseType(typeof(ProblemDetails), 400)]
-  [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public async Task<IActionResult> UnlikePost(int id)
-  {
-    try
-    {
-      _logger.LogInformation("Processing unlike for post ID: {PostId}", id);
-
-      if (id <= 0)
-      {
-        _logger.LogWarning("Invalid post ID: {PostId}", id);
-        return BadRequest("Post ID must be greater than zero");
-      }
-
-      // Extract user ID from JWT claims
-      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-      {
-        _logger.LogWarning("Could not extract user ID from JWT claims");
-        return Unauthorized("Invalid authentication token");
-      }
-
-      var result = await _likeService.UnlikePostAsync(id, userId);
-
-      _logger.LogInformation("Unlike processed successfully for post {PostId}, likeCount: {LikeCount}",
-          id, result.LikeCount);
-      return Ok(result);
-    }
-    catch (KeyNotFoundException ex)
-    {
-      _logger.LogWarning("Post or like not found: {Message}", ex.Message);
-      return NotFound(ex.Message);
-    }
-    catch (ArgumentException ex)
-    {
-      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
-      return BadRequest(ex.Message);
-    }
-    catch (Exception ex)
-    {
-      _logger.LogError(ex, "Error processing unlike for post ID: {PostId}", id);
-      return StatusCode(500, "An error occurred while processing the unlike");
-    }
-  }
-
-  /// <summary>
   /// Get comments for a specific post with pagination
   /// </summary>
   /// <param name="id">Post ID whose comments to retrieve</param>

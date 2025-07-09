@@ -19,16 +19,6 @@ public interface ILikeService
   Task<LikeResponse> ToggleLikeAsync(int postId, int userId);
 
   /// <summary>
-  /// Remove like from a post (explicit unlike operation)
-  /// </summary>
-  /// <param name="postId">Post ID to unlike</param>
-  /// <param name="userId">User ID performing the action</param>
-  /// <returns>Like response with updated status and count</returns>
-  /// <exception cref="KeyNotFoundException">Thrown when post or like is not found</exception>
-  /// <exception cref="ArgumentException">Thrown when IDs are invalid</exception>
-  Task<LikeResponse> UnlikePostAsync(int postId, int userId);
-
-  /// <summary>
   /// Check if a user has liked a specific post
   /// </summary>
   /// <param name="postId">Post ID to check</param>
