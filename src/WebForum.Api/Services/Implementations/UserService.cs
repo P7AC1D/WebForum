@@ -98,7 +98,7 @@ public class UserService : IUserService
         .Take(pageSize)
         .ToListAsync();
 
-    // Convert DTO entities to domain models
+    // Convert DTO entities to domain models (no count enrichment needed for user posts)
     var posts = postEntities.Select(pe => pe.ToDomainModel()).ToList();
 
     return new PagedResult<Post>

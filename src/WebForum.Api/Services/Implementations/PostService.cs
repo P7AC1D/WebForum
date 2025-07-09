@@ -99,8 +99,8 @@ public class PostService : IPostService
         .Take(pageSize)
         .ToListAsync();
 
-    // Convert DTO entities to domain models
-    var posts = postEntities.Select(pe => pe.ToDomainModel()).ToList();
+    // Convert DTO entities to domain models and populate counts
+    var posts = await EnrichPostsWithCountsAsync(postEntities.Select(pe => pe.ToDomainModel()).ToList());
 
     return new PagedResult<Post>
     {
@@ -132,7 +132,8 @@ public class PostService : IPostService
     if (postEntity == null)
       throw new KeyNotFoundException($"Post with ID {postId} not found");
 
-    return postEntity.ToDomainModel();
+    var post = postEntity.ToDomainModel();
+    return await EnrichPostWithCountsAsync(post);
   }
 
   /// <summary>
@@ -168,9 +169,9 @@ public class PostService : IPostService
     _context.Posts.Add(postEntity);
     await _context.SaveChangesAsync();
 
-    // Set the generated ID back to the domain model
+    // Set the generated ID back to the domain model and enrich with counts
     post.Id = postEntity.Id;
-    return post;
+    return await EnrichPostWithCountsAsync(post);
   }
 
   /// <summary>
@@ -205,5 +206,52 @@ public class PostService : IPostService
       throw new KeyNotFoundException($"Post with ID {postId} not found");
 
     return post.AuthorId;
+  }
+
+  /// <summary>
+  /// Helper method to enrich posts with comment and like counts
+  /// </summary>
+  /// <param name="posts">List of posts to enrich</param>
+  /// <returns>Posts with populated comment and like counts</returns>
+  private async Task<List<Post>> EnrichPostsWithCountsAsync(List<Post> posts)
+  {
+    if (!posts.Any())
+      return posts;
+
+    var postIds = posts.Select(p => p.Id).ToList();
+
+    // Get comment counts for all posts in a single query
+    var commentCounts = await _context.Comments
+        .Where(c => postIds.Contains(c.PostId))
+        .GroupBy(c => c.PostId)
+        .Select(g => new { PostId = g.Key, Count = g.Count() })
+        .ToDictionaryAsync(x => x.PostId, x => x.Count);
+
+    // Get like counts for all posts in a single query
+    var likeCounts = await _context.Likes
+        .Where(l => postIds.Contains(l.PostId))
+        .GroupBy(l => l.PostId)
+        .Select(g => new { PostId = g.Key, Count = g.Count() })
+        .ToDictionaryAsync(x => x.PostId, x => x.Count);
+
+    // Populate counts for each post
+    foreach (var post in posts)
+    {
+      post.CommentCount = commentCounts.GetValueOrDefault(post.Id, 0);
+      post.LikeCount = likeCounts.GetValueOrDefault(post.Id, 0);
+    }
+
+    return posts;
+  }
+
+  /// <summary>
+  /// Helper method to enrich a single post with comment and like counts
+  /// </summary>
+  /// <param name="post">Post to enrich</param>
+  /// <returns>Post with populated comment and like counts</returns>
+  private async Task<Post> EnrichPostWithCountsAsync(Post post)
+  {
+    var enrichedPosts = await EnrichPostsWithCountsAsync(new List<Post> { post });
+    return enrichedPosts.First();
   }
 }

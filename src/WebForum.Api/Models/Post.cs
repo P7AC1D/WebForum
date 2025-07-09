@@ -16,4 +16,14 @@ public class Post
   public int AuthorId { get; set; }
 
   public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+  /// <summary>
+  /// Number of comments on this post (computed property)
+  /// </summary>
+  public int CommentCount { get; set; }
+
+  /// <summary>
+  /// Number of likes on this post (computed property)
+  /// </summary>
+  public int LikeCount { get; set; }
 }
