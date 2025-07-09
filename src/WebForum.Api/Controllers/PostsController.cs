@@ -19,17 +19,20 @@ public class PostsController : ControllerBase
   private readonly IPostService _postService;
   private readonly ICommentService _commentService;
   private readonly ILikeService _likeService;
+  private readonly IModerationService _moderationService;
   private readonly ILogger<PostsController> _logger;
 
   public PostsController(
       IPostService postService,
       ICommentService commentService,
       ILikeService likeService,
+      IModerationService moderationService,
       ILogger<PostsController> logger)
   {
     _postService = postService;
     _commentService = commentService;
     _likeService = likeService;
+    _moderationService = moderationService;
     _logger = logger;
   }
 
@@ -106,8 +109,9 @@ public class PostsController : ControllerBase
       {
         var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
         var likeCount = await GetLikeCountForPostAsync(post.Id);
+        var isTagged = await _moderationService.IsPostTaggedAsync(post.Id);
 
-        responseItems.Add(PostResponse.FromPost(post, commentCount, likeCount));
+        responseItems.Add(PostResponse.FromPost(post, commentCount, likeCount, isTagged));
       }
 
       var responseResult = new PagedResult<PostResponse>
@@ -167,8 +171,9 @@ public class PostsController : ControllerBase
       // Convert to response model with computed properties
       var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
       var likeCount = await GetLikeCountForPostAsync(post.Id);
+      var isTagged = await _moderationService.IsPostTaggedAsync(post.Id);
 
-      var response = PostResponse.FromPost(post, commentCount, likeCount);
+      var response = PostResponse.FromPost(post, commentCount, likeCount, isTagged);
 
       _logger.LogInformation("Post retrieved successfully: {PostId}", id);
       return Ok(response);
@@ -232,8 +237,8 @@ public class PostsController : ControllerBase
 
       var post = await _postService.CreatePostAsync(createPost, userId);
 
-      // Convert to response model with computed properties (new post has 0 comments/likes)
-      var response = PostResponse.FromPost(post, 0, 0);
+      // Convert to response model with computed properties (new post has 0 comments/likes and is not tagged)
+      var response = PostResponse.FromPost(post, 0, 0, false);
 
       _logger.LogInformation("Post created successfully with ID: {PostId}", post.Id);
       return CreatedAtAction(nameof(GetPost), new { id = post.Id }, response);
