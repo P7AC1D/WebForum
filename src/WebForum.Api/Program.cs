@@ -15,8 +15,8 @@ builder.Services.AddControllers();
 // Configure routing options for case-insensitive routes
 builder.Services.Configure<RouteOptions>(options =>
 {
-    options.LowercaseUrls = true;
-    options.LowercaseQueryStrings = true;
+  options.LowercaseUrls = true;
+  options.LowercaseQueryStrings = true;
 });
 
 // Add Entity Framework
@@ -71,8 +71,8 @@ if (app.Environment.IsDevelopment())
   app.MapOpenApi();
   app.MapScalarApiReference(options =>
   {
-      options.Title = "Web Forum API";
-      options.OpenApiRoutePattern = "/openapi/v1.json";
+    options.Title = "Web Forum API";
+    options.OpenApiRoutePattern = "/openapi/v1.json";
   }).WithName("scalar-docs").ExcludeFromDescription();
 }
 

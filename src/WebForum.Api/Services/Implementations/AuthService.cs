@@ -59,16 +59,8 @@ public class AuthService : IAuthService
       // Hash password
       var passwordHash = _securityService.HashPassword(registration.Password);
 
-      // Create new user entity
-      var user = new User
-      {
-        Username = registration.Username,
-        Email = registration.Email,
-        PasswordHash = passwordHash,
-        Role = UserRoles.User, // Default role
-        CreatedAt = DateTimeOffset.UtcNow,
-        UpdatedAt = DateTimeOffset.UtcNow
-      };
+      // Create new user entity using registration model
+      var user = registration.ToUser(passwordHash);
 
       // Save to database
       _context.Users.Add(user);

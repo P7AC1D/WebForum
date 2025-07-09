@@ -31,6 +31,11 @@ public class Registration
   public string Password { get; set; } = string.Empty;
 
   /// <summary>
+  /// User role for the new account (optional, defaults to User)
+  /// </summary>
+  public UserRoles? Role { get; set; }
+
+  /// <summary>
   /// Converts the registration model to a User entity
   /// </summary>
   /// <param name="passwordHash">The hashed password</param>
@@ -42,7 +47,7 @@ public class Registration
       Username = Username,
       Email = Email,
       PasswordHash = passwordHash,
-      Role = UserRoles.User, // Default role for new registrations
+      Role = Role ?? UserRoles.User, // Default role for new registrations if not specified
       CreatedAt = DateTimeOffset.UtcNow,
       UpdatedAt = DateTimeOffset.UtcNow
     };
@@ -69,6 +74,10 @@ public class Registration
     // Username validation - alphanumeric and underscore only
     if (!string.IsNullOrEmpty(Username) && !System.Text.RegularExpressions.Regex.IsMatch(Username, @"^[a-zA-Z0-9_]+$"))
       errors.Add("Username can only contain letters, numbers, and underscores");
+
+    // Role validation - ensure role is valid if specified
+    if (Role.HasValue && !Enum.IsDefined(typeof(UserRoles), Role.Value))
+      errors.Add("Invalid user role specified");
 
     return errors;
   }
