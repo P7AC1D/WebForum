@@ -29,23 +29,6 @@ function Start-Database {
   Write-Host "Database may not be ready yet. Check with 'docker-compose logs postgres'" -ForegroundColor Yellow
 }
 
-function Create-Migration {
-  param([string]$Name = "InitialCreate")
-  Write-Host "Creating EF Core migration: $Name..." -ForegroundColor Green
-  Push-Location "src\WebForum.Api"
-  try {
-    dotnet ef migrations add $Name
-    Write-Host "Migration '$Name' created successfully!" -ForegroundColor Green
-  }
-  catch {
-    Write-Host "Failed to create migration: $_" -ForegroundColor Red
-    Write-Host "Make sure the .NET SDK is installed and the project builds successfully." -ForegroundColor Yellow
-  }
-  finally {
-    Pop-Location
-  }
-}
-
 function Update-Database {
   Write-Host "Applying EF Core migrations..." -ForegroundColor Green
   Push-Location "src\WebForum.Api"
@@ -83,10 +66,20 @@ function Restart-Database {
 }
 
 function Reset-Database {
-  Write-Host "WARNING: This will delete all data!" -ForegroundColor Red
+  Write-Host "WARNING: This will delete all data and reset migrations!" -ForegroundColor Red
   $confirmation = Read-Host "Are you sure? (y/N)"
   if ($confirmation -eq 'y' -or $confirmation -eq 'Y') {
+    Write-Host "Stopping containers and removing volumes..." -ForegroundColor Yellow
     docker-compose down -v
+    
+    Write-Host "Clearing migrations directory..." -ForegroundColor Yellow
+    $migrationsPath = "src\WebForum.Api\Migrations"
+    if (Test-Path $migrationsPath) {
+      Remove-Item -Recurse -Force $migrationsPath
+      Write-Host "Migrations directory cleared." -ForegroundColor Green
+    }
+    
+    Write-Host "Starting fresh database..." -ForegroundColor Yellow
     docker-compose up -d postgres
     Write-Host "Database reset complete! Waiting for database to be ready..." -ForegroundColor Green
         
@@ -95,7 +88,7 @@ function Reset-Database {
     do {
       $result = docker-compose exec postgres pg_isready -U postgres -d webforum 2>$null
       if ($LASTEXITCODE -eq 0) {
-        Write-Host "Database is ready! Applying migrations..." -ForegroundColor Green
+        Write-Host "Database is ready! Creating and applying fresh migrations..." -ForegroundColor Green
         Update-Database
         return
       }
@@ -130,35 +123,6 @@ function Show-Status {
   docker-compose ps
 }
 
-function Remove-Migration {
-  Write-Host "Removing last EF Core migration..." -ForegroundColor Yellow
-  Push-Location "src\WebForum.Api"
-  try {
-    dotnet ef migrations remove
-    Write-Host "Last migration removed successfully!" -ForegroundColor Green
-  }
-  catch {
-    Write-Host "Failed to remove migration: $_" -ForegroundColor Red
-  }
-  finally {
-    Pop-Location
-  }
-}
-
-function List-Migrations {
-  Write-Host "Listing EF Core migrations..." -ForegroundColor Green
-  Push-Location "src\WebForum.Api"
-  try {
-    dotnet ef migrations list
-  }
-  catch {
-    Write-Host "Failed to list migrations: $_" -ForegroundColor Red
-  }
-  finally {
-    Pop-Location
-  }
-}
-
 function Show-Help {
   Write-Host "Web Forum Database Management" -ForegroundColor Cyan
   Write-Host "Usage: .\db.ps1 [command]" -ForegroundColor White
@@ -167,11 +131,8 @@ function Show-Help {
   Write-Host "  start          - Start the PostgreSQL database and apply migrations" -ForegroundColor Gray
   Write-Host "  stop           - Stop all services" -ForegroundColor Gray
   Write-Host "  restart        - Restart the database" -ForegroundColor Gray
-  Write-Host "  reset          - Reset database and apply migrations (WARNING: deletes all data)" -ForegroundColor Gray
+  Write-Host "  reset          - Reset database and migrations (WARNING: deletes all data and migrations)" -ForegroundColor Gray
   Write-Host "  migrate        - Apply EF Core migrations to the database" -ForegroundColor Gray
-  Write-Host "  create-migration [name] - Create a new EF Core migration (default: InitialCreate)" -ForegroundColor Gray
-  Write-Host "  remove-migration - Remove the last migration" -ForegroundColor Gray
-  Write-Host "  list-migrations - List all migrations" -ForegroundColor Gray
   Write-Host "  logs           - Show database logs" -ForegroundColor Gray
   Write-Host "  connect        - Connect to database via psql" -ForegroundColor Gray
   Write-Host "  backup         - Create a database backup" -ForegroundColor Gray
@@ -184,12 +145,6 @@ switch ($Command) {
   "restart" { Restart-Database }
   "reset" { Reset-Database }
   "migrate" { Update-Database }
-  "create-migration" { 
-    $migrationName = if ($args.Length -gt 0) { $args[0] } else { "InitialCreate" }
-    Create-Migration $migrationName 
-  }
-  "remove-migration" { Remove-Migration }
-  "list-migrations" { List-Migrations }
   "logs" { Show-Logs }
   "connect" { Connect-Database }
   "backup" { Backup-Database }

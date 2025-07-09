@@ -5,19 +5,6 @@
 
 set -e
 
-create_migration() {
-    local migration_name=${1:-"InitialCreate"}
-    echo "Creating EF Core migration: $migration_name..."
-    cd src/WebForum.Api
-    if dotnet ef migrations add "$migration_name"; then
-        echo "Migration '$migration_name' created successfully!"
-    else
-        echo "Failed to create migration. Make sure the .NET SDK is installed and the project builds successfully."
-        exit 1
-    fi
-    cd ../..
-}
-
 update_database() {
     echo "Applying EF Core migrations..."
     cd src/WebForum.Api
@@ -39,25 +26,6 @@ update_database() {
         echo "Failed to apply migrations. Make sure the .NET SDK is installed and the project builds successfully."
         exit 1
     fi
-    cd ../..
-}
-
-remove_migration() {
-    echo "Removing last EF Core migration..."
-    cd src/WebForum.Api
-    if dotnet ef migrations remove; then
-        echo "Last migration removed successfully!"
-    else
-        echo "Failed to remove migration."
-        exit 1
-    fi
-    cd ../..
-}
-
-list_migrations() {
-    echo "Listing EF Core migrations..."
-    cd src/WebForum.Api
-    dotnet ef migrations list
     cd ../..
 }
 
@@ -90,11 +58,20 @@ case "$1" in
         docker-compose restart postgres
         ;;
     reset)
-        echo "WARNING: This will delete all data!"
+        echo "WARNING: This will delete all data and reset migrations!"
         read -p "Are you sure? (y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "Stopping containers and removing volumes..."
             docker-compose down -v
+            
+            echo "Clearing migrations directory..."
+            if [ -d "src/WebForum.Api/Migrations" ]; then
+                rm -rf src/WebForum.Api/Migrations
+                echo "Migrations directory cleared."
+            fi
+            
+            echo "Starting fresh database..."
             docker-compose up -d postgres
             echo "Database reset complete! Waiting for database to be ready..."
             
@@ -109,7 +86,7 @@ case "$1" in
                 ((retries--))
             done
             
-            echo "Database is ready! Applying migrations..."
+            echo "Database is ready! Creating and applying fresh migrations..."
             update_database
         else
             echo "Reset cancelled."
@@ -117,15 +94,6 @@ case "$1" in
         ;;
     migrate)
         update_database
-        ;;
-    create-migration)
-        create_migration "$2"
-        ;;
-    remove-migration)
-        remove_migration
-        ;;
-    list-migrations)
-        list_migrations
         ;;
     logs)
         docker-compose logs -f postgres
@@ -150,11 +118,8 @@ case "$1" in
         echo "  start                    - Start the PostgreSQL database and apply migrations"
         echo "  stop                     - Stop all services"
         echo "  restart                  - Restart the database"
-        echo "  reset                    - Reset database and apply migrations (WARNING: deletes all data)"
+        echo "  reset                    - Reset database and migrations (WARNING: deletes all data and migrations)"
         echo "  migrate                  - Apply EF Core migrations to the database"
-        echo "  create-migration [name]  - Create a new EF Core migration (default: InitialCreate)"
-        echo "  remove-migration         - Remove the last migration"
-        echo "  list-migrations          - List all migrations"
         echo "  logs                     - Show database logs"
         echo "  connect                  - Connect to database via psql"
         echo "  backup                   - Create a database backup"

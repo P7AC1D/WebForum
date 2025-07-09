@@ -84,7 +84,7 @@ Convenient scripts are provided for database operations:
 | `start`   | Start PostgreSQL and apply migrations |
 | `stop`    | Stop all services |
 | `restart` | Restart the database |
-| `reset`   | Reset database and apply migrations (⚠️ **deletes all data**) |
+| `reset`   | Reset database and migrations (⚠️ **deletes all data and migrations**) |
 | `migrate` | Apply EF Core migrations (creates initial migration if none exist) |
 | `logs`    | Show database logs |
 | `connect` | Connect to database via psql |
