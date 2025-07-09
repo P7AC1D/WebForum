@@ -5,15 +5,59 @@
 
 set -e
 
+create_migration() {
+    local migration_name=${1:-"InitialCreate"}
+    echo "Creating EF Core migration: $migration_name..."
+    cd src/WebForum.Api
+    if dotnet ef migrations add "$migration_name"; then
+        echo "Migration '$migration_name' created successfully!"
+    else
+        echo "Failed to create migration. Make sure the .NET SDK is installed and the project builds successfully."
+        exit 1
+    fi
+    cd ../..
+}
+
 update_database() {
     echo "Applying EF Core migrations..."
     cd src/WebForum.Api
+    
+    # Check if Migrations folder exists and has migration files
+    if [ ! -d "Migrations" ] || [ -z "$(find Migrations -name "*.cs" 2>/dev/null)" ]; then
+        echo "No migrations found. Creating initial migration..."
+        if dotnet ef migrations add "InitialCreate"; then
+            echo "Initial migration created successfully!"
+        else
+            echo "Failed to create initial migration."
+            exit 1
+        fi
+    fi
+    
     if dotnet ef database update; then
         echo "Migrations applied successfully!"
     else
         echo "Failed to apply migrations. Make sure the .NET SDK is installed and the project builds successfully."
         exit 1
     fi
+    cd ../..
+}
+
+remove_migration() {
+    echo "Removing last EF Core migration..."
+    cd src/WebForum.Api
+    if dotnet ef migrations remove; then
+        echo "Last migration removed successfully!"
+    else
+        echo "Failed to remove migration."
+        exit 1
+    fi
+    cd ../..
+}
+
+list_migrations() {
+    echo "Listing EF Core migrations..."
+    cd src/WebForum.Api
+    dotnet ef migrations list
     cd ../..
 }
 
@@ -74,6 +118,15 @@ case "$1" in
     migrate)
         update_database
         ;;
+    create-migration)
+        create_migration "$2"
+        ;;
+    remove-migration)
+        remove_migration
+        ;;
+    list-migrations)
+        list_migrations
+        ;;
     logs)
         docker-compose logs -f postgres
         ;;
@@ -91,18 +144,21 @@ case "$1" in
         ;;
     *)
         echo "Web Forum Database Management"
-        echo "Usage: $0 {start|stop|restart|reset|migrate|logs|connect|backup|status}"
+        echo "Usage: $0 [command]"
         echo ""
         echo "Commands:"
-        echo "  start   - Start the PostgreSQL database and apply migrations"
-        echo "  stop    - Stop all services"
-        echo "  restart - Restart the database"
-        echo "  reset   - Reset database and apply migrations (WARNING: deletes all data)"
-        echo "  migrate - Apply EF Core migrations to the database"
-        echo "  logs    - Show database logs"
-        echo "  connect - Connect to database via psql"
-        echo "  backup  - Create a database backup"
-        echo "  status  - Show service status"
+        echo "  start                    - Start the PostgreSQL database and apply migrations"
+        echo "  stop                     - Stop all services"
+        echo "  restart                  - Restart the database"
+        echo "  reset                    - Reset database and apply migrations (WARNING: deletes all data)"
+        echo "  migrate                  - Apply EF Core migrations to the database"
+        echo "  create-migration [name]  - Create a new EF Core migration (default: InitialCreate)"
+        echo "  remove-migration         - Remove the last migration"
+        echo "  list-migrations          - List all migrations"
+        echo "  logs                     - Show database logs"
+        echo "  connect                  - Connect to database via psql"
+        echo "  backup                   - Create a database backup"
+        echo "  status                   - Show service status"
         exit 1
         ;;
 esac
