@@ -511,3 +511,4 @@ docker-compose.override.yml
 # Database backups and temp files
 db-backups/
 *.dump
+src/WebForum.Api/Migrations/*.cs
