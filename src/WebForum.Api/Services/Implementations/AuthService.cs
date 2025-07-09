@@ -94,7 +94,7 @@ public class AuthService : IAuthService
   /// </summary>
   public async Task<Models.Response.AuthResponse> LoginAsync(LoginRequest login)
   {
-    _logger.LogInformation("Starting user login for username/email: {UsernameOrEmail}", login.UsernameOrEmail);
+    _logger.LogInformation("Starting user login for username/email: {Email}", login.Email);
 
     try
     {
@@ -104,27 +104,27 @@ public class AuthService : IAuthService
 
       // Try to find user by email first, then by username
       User? user = null;
-      
+
       // Check if the input looks like an email
-      if (login.UsernameOrEmail.Contains('@'))
+      if (login.Email.Contains('@'))
       {
-        user = await _userService.GetUserByEmailAsync(login.UsernameOrEmail);
+        user = await _userService.GetUserByEmailAsync(login.Email);
       }
       else
       {
-        user = await _userService.GetUserByUsernameAsync(login.UsernameOrEmail);
+        user = await _userService.GetUserByUsernameAsync(login.Email);
       }
 
       if (user == null)
       {
-        _logger.LogWarning("Login failed - user not found: {UsernameOrEmail}", login.UsernameOrEmail);
+        _logger.LogWarning("Login failed - user not found: {Email}", login.Email);
         throw new UnauthorizedAccessException("Invalid username/email or password");
       }
 
       // Verify password
       if (!_securityService.VerifyPassword(login.Password, user.PasswordHash))
       {
-        _logger.LogWarning("Login failed - invalid password for user: {UsernameOrEmail}", login.UsernameOrEmail);
+        _logger.LogWarning("Login failed - invalid password for user: {Email}", login.Email);
         throw new UnauthorizedAccessException("Invalid username/email or password");
       }
 
@@ -139,7 +139,7 @@ public class AuthService : IAuthService
     }
     catch (Exception ex) when (!(ex is ArgumentException || ex is UnauthorizedAccessException))
     {
-      _logger.LogError(ex, "Error during user login for username/email: {UsernameOrEmail}", login.UsernameOrEmail);
+      _logger.LogError(ex, "Error during user login for username/email: {Email}", login.Email);
       throw;
     }
   }

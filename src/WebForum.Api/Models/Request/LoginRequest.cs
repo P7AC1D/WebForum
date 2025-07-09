@@ -8,11 +8,11 @@ namespace WebForum.Api.Models.Request;
 public class LoginRequest
 {
   /// <summary>
-  /// Username or email address
+  /// Username or email address (accepts both 'email' and 'usernameOrEmail' for flexibility)
   /// </summary>
   [Required(ErrorMessage = "Username or email is required")]
   [StringLength(100, ErrorMessage = "Username or email must not exceed 100 characters")]
-  public string UsernameOrEmail { get; set; } = string.Empty;
+  public string Email { get; set; } = string.Empty;
 
   /// <summary>
   /// User password
@@ -30,14 +30,14 @@ public class LoginRequest
     var errors = new List<string>();
 
     // Additional business rule validations
-    if (string.IsNullOrWhiteSpace(UsernameOrEmail))
+    if (string.IsNullOrWhiteSpace(Email))
       errors.Add("Username or email cannot be empty or whitespace");
 
     if (string.IsNullOrWhiteSpace(Password))
       errors.Add("Password cannot be empty or whitespace");
 
     // Check for appropriate format
-    if (!string.IsNullOrEmpty(UsernameOrEmail) && UsernameOrEmail.Trim().Length != UsernameOrEmail.Length)
+    if (!string.IsNullOrEmpty(Email) && Email.Trim().Length != Email.Length)
       errors.Add("Username or email cannot start or end with whitespace");
 
     return errors;

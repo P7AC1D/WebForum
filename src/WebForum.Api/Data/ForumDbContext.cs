@@ -22,6 +22,10 @@ public class ForumDbContext(DbContextOptions<ForumDbContext> options) : DbContex
       entity.HasIndex(e => e.Username).IsUnique();
       entity.HasIndex(e => e.Email).IsUnique();
       entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+      
+      // Configure Role enum to be stored as integer
+      entity.Property(e => e.Role)
+            .HasConversion<int>();
     });
 
     // PostEntity configuration

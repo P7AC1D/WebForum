@@ -87,7 +87,7 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
   {
     try
     {
-      _logger.LogInformation("User login attempt for username/email: {UsernameOrEmail}", login?.UsernameOrEmail);
+      _logger.LogInformation("User login attempt for username/email: {Email}", login?.Email);
 
       if (login == null)
         return BadRequest("Login data is required");

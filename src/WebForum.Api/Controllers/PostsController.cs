@@ -106,7 +106,7 @@ public class PostsController : ControllerBase
       {
         var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
         var likeCount = await GetLikeCountForPostAsync(post.Id);
-        
+
         responseItems.Add(PostResponse.FromPost(post, commentCount, likeCount));
       }
 
@@ -167,7 +167,7 @@ public class PostsController : ControllerBase
       // Convert to response model with computed properties
       var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
       var likeCount = await GetLikeCountForPostAsync(post.Id);
-      
+
       var response = PostResponse.FromPost(post, commentCount, likeCount);
 
       _logger.LogInformation("Post retrieved successfully: {PostId}", id);

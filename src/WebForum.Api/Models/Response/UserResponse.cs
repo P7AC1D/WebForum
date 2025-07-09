@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using WebForum.Api.Converters;
+
 namespace WebForum.Api.Models.Response;
 
 /// <summary>
@@ -23,6 +26,7 @@ public class UserResponse
   /// <summary>
   /// User role
   /// </summary>
+  [JsonConverter(typeof(UserRolesJsonConverter))]
   public UserRoles Role { get; set; } = UserRoles.User;
 
   /// <summary>

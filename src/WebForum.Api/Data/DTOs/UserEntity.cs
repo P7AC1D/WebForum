@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using WebForum.Api.Models;
 
 namespace WebForum.Api.Data.DTOs;
 
@@ -22,7 +23,7 @@ public class UserEntity
   public string PasswordHash { get; set; } = string.Empty;
 
   [Required]
-  public string Role { get; set; } = "User"; // Store as string in DB
+  public UserRoles Role { get; set; } = UserRoles.User; // Store as integer in DB
 
   public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -38,7 +39,7 @@ public class UserEntity
       Username = Username,
       Email = Email,
       PasswordHash = PasswordHash,
-      Role = Enum.TryParse<Models.UserRoles>(Role, true, out var role) ? role : Models.UserRoles.User,
+      Role = Role, // Direct assignment since both are UserRoles enum
       CreatedAt = CreatedAt
     };
   }
@@ -56,7 +57,7 @@ public class UserEntity
       Username = user.Username,
       Email = user.Email,
       PasswordHash = user.PasswordHash,
-      Role = user.Role.ToString(),
+      Role = user.Role, // Direct assignment since both are UserRoles enum
       CreatedAt = user.CreatedAt
     };
   }

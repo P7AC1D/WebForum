@@ -1,4 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using WebForum.Api.Converters;
+using WebForum.Api.Models;
 
 namespace WebForum.Api.Models.Request;
 
@@ -29,6 +32,12 @@ public class RegistrationRequest
   [MinLength(6, ErrorMessage = "Password must be at least 6 characters long")]
   [StringLength(100, ErrorMessage = "Password must not exceed 100 characters")]
   public string Password { get; set; } = string.Empty;
+
+  /// <summary>
+  /// Optional role for the new account (defaults to User)
+  /// </summary>
+  [JsonConverter(typeof(NullableUserRolesJsonConverter))]
+  public UserRoles? Role { get; set; }
 
   /// <summary>
   /// Validates the registration request data
@@ -62,16 +71,15 @@ public class RegistrationRequest
   /// Converts the registration request to a User domain model
   /// </summary>
   /// <param name="passwordHash">The hashed password</param>
-  /// <param name="role">The role to assign (defaults to User)</param>
   /// <returns>User domain model ready for database insertion</returns>
-  public User ToUser(string passwordHash, UserRoles role = UserRoles.User)
+  public User ToUser(string passwordHash)
   {
     return new User
     {
       Username = Username.Trim(),
       Email = Email.Trim().ToLower(),
       PasswordHash = passwordHash,
-      Role = role,
+      Role = Role ?? UserRoles.User, // Use provided role or default to User
       CreatedAt = DateTimeOffset.UtcNow
     };
   }
