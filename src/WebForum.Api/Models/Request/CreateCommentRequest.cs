@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace WebForum.Api.Models;
+namespace WebForum.Api.Models.Request;
 
 /// <summary>
-/// Model for creating new comments on forum posts
+/// Request model for creating new comments on forum posts
 /// </summary>
-public class CreateComment
+public class CreateCommentRequest
 {
   /// <summary>
   /// Comment content (required, 3-2000 characters)
@@ -38,11 +38,11 @@ public class CreateComment
   }
 
   /// <summary>
-  /// Converts CreateComment to Comment entity
+  /// Converts CreateCommentRequest to Comment domain model
   /// </summary>
   /// <param name="authorId">ID of the user creating the comment</param>
   /// <param name="postId">ID of the post being commented on</param>
-  /// <returns>Comment entity ready for database insertion</returns>
+  /// <returns>Comment domain model ready for processing</returns>
   public Comment ToComment(int authorId, int postId)
   {
     var now = DateTimeOffset.UtcNow;

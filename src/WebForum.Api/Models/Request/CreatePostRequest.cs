@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace WebForum.Api.Models;
+namespace WebForum.Api.Models.Request;
 
 /// <summary>
-/// Model for creating new forum posts
+/// Request model for creating new forum posts
 /// </summary>
-public class CreatePost
+public class CreatePostRequest
 {
   /// <summary>
   /// Post title (required, 5-200 characters)
@@ -48,10 +48,10 @@ public class CreatePost
   }
 
   /// <summary>
-  /// Converts CreatePost to Post entity
+  /// Converts CreatePostRequest to Post domain model
   /// </summary>
   /// <param name="authorId">ID of the user creating the post</param>
-  /// <returns>Post entity ready for database insertion</returns>
+  /// <returns>Post domain model ready for processing</returns>
   public Post ToPost(int authorId)
   {
     var now = DateTimeOffset.UtcNow;

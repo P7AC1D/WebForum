@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebForum.Api.Models;
+using WebForum.Api.Models.Request;
+using WebForum.Api.Models.Response;
 using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Controllers;
@@ -25,10 +27,10 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
   /// <response code="400">Invalid registration data or user already exists</response>
   /// <response code="500">Internal server error</response>
   [HttpPost("register")]
-  [ProducesResponseType(typeof(AuthResponse), 201)]
+  [ProducesResponseType(typeof(Models.Response.AuthResponse), 201)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public async Task<IActionResult> Register([FromBody] Registration registration)
+  public async Task<IActionResult> Register([FromBody] RegistrationRequest registration)
   {
     try
     {
@@ -77,15 +79,15 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
   /// <response code="400">Invalid login data</response>
   /// <response code="500">Internal server error</response>
   [HttpPost("login")]
-  [ProducesResponseType(typeof(AuthResponse), 200)]
+  [ProducesResponseType(typeof(Models.Response.AuthResponse), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public async Task<IActionResult> Login([FromBody] Login login)
+  public async Task<IActionResult> Login([FromBody] LoginRequest login)
   {
     try
     {
-      _logger.LogInformation("User login attempt for email: {Email}", login?.Email);
+      _logger.LogInformation("User login attempt for username/email: {UsernameOrEmail}", login?.UsernameOrEmail);
 
       if (login == null)
         return BadRequest("Login data is required");
@@ -130,7 +132,7 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
   /// <response code="400">Invalid refresh data</response>
   /// <response code="500">Internal server error</response>
   [HttpPost("refresh")]
-  [ProducesResponseType(typeof(AuthResponse), 200)]
+  [ProducesResponseType(typeof(Models.Response.AuthResponse), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]

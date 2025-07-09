@@ -166,7 +166,6 @@ public class ModerationService : IModerationService
                   Title = p.Title,
                   Content = p.Content,
                   AuthorId = p.AuthorId,
-                  AuthorUsername = author.Username,
                   CreatedAt = p.CreatedAt,
                   Tag = pt.Tag,
                   TaggedByUserId = pt.CreatedByUserId,

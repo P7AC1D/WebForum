@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
 using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
+using WebForum.Api.Models.Request;
 using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Services.Implementations;
@@ -86,7 +87,7 @@ public class CommentService : ICommentService
   /// <returns>Created comment information with author details and timestamps</returns>
   /// <exception cref="KeyNotFoundException">Thrown when post is not found</exception>
   /// <exception cref="ArgumentException">Thrown when comment data or IDs are invalid</exception>
-  public async Task<Comment> CreateCommentAsync(int postId, CreateComment createComment, int authorId)
+  public async Task<Comment> CreateCommentAsync(int postId, CreateCommentRequest createComment, int authorId)
   {
     if (postId <= 0)
       throw new ArgumentException("Post ID must be greater than zero", nameof(postId));

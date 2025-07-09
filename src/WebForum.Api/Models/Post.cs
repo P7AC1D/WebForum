@@ -2,6 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WebForum.Api.Models;
 
+/// <summary>
+/// Domain model for forum posts
+/// </summary>
 public class Post
 {
   public int Id { get; set; }
@@ -17,13 +20,6 @@ public class Post
 
   public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
-  /// <summary>
-  /// Number of comments on this post (computed property)
-  /// </summary>
-  public int CommentCount { get; set; }
-
-  /// <summary>
-  /// Number of likes on this post (computed property)
-  /// </summary>
-  public int LikeCount { get; set; }
+  // Note: CommentCount and LikeCount are computed at the service layer
+  // and included in response models, not stored in the domain model
 }

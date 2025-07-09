@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using WebForum.Api.Models;
+using WebForum.Api.Models.Request;
+using WebForum.Api.Models.Response;
 using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Controllers;
@@ -47,7 +49,7 @@ public class PostsController : ControllerBase
   /// <response code="400">Invalid query parameters (invalid page, pageSize, dates, sortBy, or sortOrder)</response>
   /// <response code="500">Internal server error during posts retrieval</response>
   [HttpGet]
-  [ProducesResponseType(typeof(PagedResult<Post>), 200)]
+  [ProducesResponseType(typeof(PagedResult<PostResponse>), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
   public async Task<IActionResult> GetPosts(
@@ -98,8 +100,29 @@ public class PostsController : ControllerBase
 
       var result = await _postService.GetPostsAsync(page, pageSize, authorId, dateFrom, dateTo, tags, sortBy, sortOrder);
 
-      _logger.LogInformation("Retrieved {PostCount} posts successfully", result.Items.Count);
-      return Ok(result);
+      // Convert to response models with computed properties
+      var responseItems = new List<PostResponse>();
+      foreach (var post in result.Items)
+      {
+        var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
+        var likeCount = await GetLikeCountForPostAsync(post.Id);
+        
+        responseItems.Add(PostResponse.FromPost(post, commentCount, likeCount));
+      }
+
+      var responseResult = new PagedResult<PostResponse>
+      {
+        Items = responseItems,
+        Page = result.Page,
+        PageSize = result.PageSize,
+        TotalCount = result.TotalCount,
+        TotalPages = result.TotalPages,
+        HasPrevious = result.HasPrevious,
+        HasNext = result.HasNext
+      };
+
+      _logger.LogInformation("Retrieved {PostCount} posts successfully", responseResult.Items.Count);
+      return Ok(responseResult);
     }
     catch (ArgumentException ex)
     {
@@ -123,7 +146,7 @@ public class PostsController : ControllerBase
   /// <response code="400">Invalid post ID (must be positive integer)</response>
   /// <response code="500">Internal server error during post retrieval</response>
   [HttpGet("{id:int}")]
-  [ProducesResponseType(typeof(Post), 200)]
+  [ProducesResponseType(typeof(PostResponse), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
@@ -141,8 +164,14 @@ public class PostsController : ControllerBase
 
       var post = await _postService.GetPostByIdAsync(id);
 
+      // Convert to response model with computed properties
+      var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
+      var likeCount = await GetLikeCountForPostAsync(post.Id);
+      
+      var response = PostResponse.FromPost(post, commentCount, likeCount);
+
       _logger.LogInformation("Post retrieved successfully: {PostId}", id);
-      return Ok(post);
+      return Ok(response);
     }
     catch (KeyNotFoundException ex)
     {
@@ -172,11 +201,11 @@ public class PostsController : ControllerBase
   /// <response code="500">Internal server error during post creation</response>
   [HttpPost]
   [Authorize]
-  [ProducesResponseType(typeof(Post), 201)]
+  [ProducesResponseType(typeof(PostResponse), 201)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
-  public async Task<IActionResult> CreatePost([FromBody] CreatePost createPost)
+  public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest createPost)
   {
     try
     {
@@ -203,8 +232,11 @@ public class PostsController : ControllerBase
 
       var post = await _postService.CreatePostAsync(createPost, userId);
 
+      // Convert to response model with computed properties (new post has 0 comments/likes)
+      var response = PostResponse.FromPost(post, 0, 0);
+
       _logger.LogInformation("Post created successfully with ID: {PostId}", post.Id);
-      return CreatedAtAction(nameof(GetPost), new { id = post.Id }, post);
+      return CreatedAtAction(nameof(GetPost), new { id = post.Id }, response);
     }
     catch (ArgumentException ex)
     {
@@ -230,7 +262,7 @@ public class PostsController : ControllerBase
   /// <response code="500">Internal server error</response>
   [HttpPost("{id:int}/like")]
   [Authorize]
-  [ProducesResponseType(typeof(LikeResponse), 200)]
+  [ProducesResponseType(typeof(Models.Response.LikeResponse), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
@@ -295,7 +327,7 @@ public class PostsController : ControllerBase
   /// <response code="500">Internal server error</response>
   [HttpDelete("{id:int}/like")]
   [Authorize]
-  [ProducesResponseType(typeof(LikeResponse), 200)]
+  [ProducesResponseType(typeof(Models.Response.LikeResponse), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
@@ -356,7 +388,7 @@ public class PostsController : ControllerBase
   /// <response code="400">Invalid post ID or query parameters</response>
   /// <response code="500">Internal server error during comments retrieval</response>
   [HttpGet("{id:int}/comments")]
-  [ProducesResponseType(typeof(PagedResult<Comment>), 200)]
+  [ProducesResponseType(typeof(PagedResult<CommentResponse>), 200)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
@@ -395,8 +427,22 @@ public class PostsController : ControllerBase
 
       var result = await _commentService.GetPostCommentsAsync(id, page, pageSize, sortOrder);
 
-      _logger.LogInformation("Retrieved {CommentCount} comments for post ID: {PostId}", result.Items.Count, id);
-      return Ok(result);
+      // Convert to response models
+      var responseItems = result.Items.Select(comment => CommentResponse.FromComment(comment)).ToList();
+
+      var responseResult = new PagedResult<CommentResponse>
+      {
+        Items = responseItems,
+        Page = result.Page,
+        PageSize = result.PageSize,
+        TotalCount = result.TotalCount,
+        TotalPages = result.TotalPages,
+        HasPrevious = result.HasPrevious,
+        HasNext = result.HasNext
+      };
+
+      _logger.LogInformation("Retrieved {CommentCount} comments for post ID: {PostId}", responseResult.Items.Count, id);
+      return Ok(responseResult);
     }
     catch (KeyNotFoundException ex)
     {
@@ -428,14 +474,14 @@ public class PostsController : ControllerBase
   /// <response code="500">Internal server error during comment creation</response>
   [HttpPost("{id:int}/comments")]
   [Authorize]
-  [ProducesResponseType(typeof(Comment), 201)]
+  [ProducesResponseType(typeof(CommentResponse), 201)]
   [ProducesResponseType(typeof(ProblemDetails), 400)]
   [ProducesResponseType(typeof(ProblemDetails), 401)]
   [ProducesResponseType(typeof(ProblemDetails), 404)]
   [ProducesResponseType(typeof(ProblemDetails), 500)]
   public async Task<IActionResult> CreateComment(
       int id,
-      [FromBody] CreateComment createComment)
+      [FromBody] CreateCommentRequest createComment)
   {
     try
     {
@@ -468,8 +514,11 @@ public class PostsController : ControllerBase
 
       var comment = await _commentService.CreateCommentAsync(id, createComment, userId);
 
+      // Convert to response model
+      var response = CommentResponse.FromComment(comment);
+
       _logger.LogInformation("Comment created successfully with ID: {CommentId} for post {PostId}", comment.Id, id);
-      return CreatedAtAction(nameof(GetPostComments), new { id = id }, comment);
+      return CreatedAtAction(nameof(GetPostComments), new { id = id }, response);
     }
     catch (KeyNotFoundException ex)
     {
@@ -486,5 +535,15 @@ public class PostsController : ControllerBase
       _logger.LogError(ex, "Error creating comment for post ID: {PostId}", id);
       return StatusCode(500, "An error occurred while creating the comment");
     }
+  }
+
+  /// <summary>
+  /// Helper method to get like count for a post
+  /// </summary>
+  /// <param name="postId">Post ID to get like count for</param>
+  /// <returns>Number of likes for the post</returns>
+  private async Task<int> GetLikeCountForPostAsync(int postId)
+  {
+    return await _likeService.GetLikeCountForPostAsync(postId);
   }
 }

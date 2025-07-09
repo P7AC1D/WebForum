@@ -9,7 +9,6 @@ public class TaggedPost
   public string Title { get; set; } = string.Empty;
   public string Content { get; set; } = string.Empty;
   public int AuthorId { get; set; }
-  public string AuthorUsername { get; set; } = string.Empty;
   public DateTimeOffset CreatedAt { get; set; }
   public string Tag { get; set; } = string.Empty;
   public int TaggedByUserId { get; set; }

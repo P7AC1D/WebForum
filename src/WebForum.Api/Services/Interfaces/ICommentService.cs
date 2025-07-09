@@ -1,4 +1,5 @@
 using WebForum.Api.Models;
+using WebForum.Api.Models.Request;
 
 namespace WebForum.Api.Services.Interfaces;
 
@@ -28,7 +29,7 @@ public interface ICommentService
   /// <returns>Created comment information with author details and timestamps</returns>
   /// <exception cref="KeyNotFoundException">Thrown when post is not found</exception>
   /// <exception cref="ArgumentException">Thrown when comment data or IDs are invalid</exception>
-  Task<Comment> CreateCommentAsync(int postId, CreateComment createComment, int authorId);
+  Task<Comment> CreateCommentAsync(int postId, CreateCommentRequest createComment, int authorId);
 
   /// <summary>
   /// Check if a comment exists by ID

@@ -1,4 +1,5 @@
 using WebForum.Api.Models;
+using WebForum.Api.Models.Request;
 
 namespace WebForum.Api.Services.Interfaces;
 
@@ -46,7 +47,7 @@ public interface IPostService
   /// <param name="authorId">ID of the user creating the post</param>
   /// <returns>Created post information with generated ID and timestamps</returns>
   /// <exception cref="ArgumentException">Thrown when post data or author ID is invalid</exception>
-  Task<Post> CreatePostAsync(CreatePost createPost, int authorId);
+  Task<Post> CreatePostAsync(CreatePostRequest createPost, int authorId);
 
   /// <summary>
   /// Check if a post exists by ID

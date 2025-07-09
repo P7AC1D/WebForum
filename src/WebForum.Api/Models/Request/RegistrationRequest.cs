@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace WebForum.Api.Models;
+namespace WebForum.Api.Models.Request;
 
 /// <summary>
-/// Registration model for new user account creation
+/// Request model for user registration
 /// </summary>
-public class Registration
+public class RegistrationRequest
 {
   /// <summary>
   /// Username for the new account (3-50 characters)
@@ -31,29 +31,7 @@ public class Registration
   public string Password { get; set; } = string.Empty;
 
   /// <summary>
-  /// User role for the new account (optional, defaults to User)
-  /// </summary>
-  public UserRoles? Role { get; set; }
-
-  /// <summary>
-  /// Converts the registration model to a User entity
-  /// </summary>
-  /// <param name="passwordHash">The hashed password</param>
-  /// <returns>User entity ready for database insertion</returns>
-  public User ToUser(string passwordHash)
-  {
-    return new User
-    {
-      Username = Username,
-      Email = Email,
-      PasswordHash = passwordHash,
-      Role = Role ?? UserRoles.User, // Default role for new registrations if not specified
-      CreatedAt = DateTimeOffset.UtcNow
-    };
-  }
-
-  /// <summary>
-  /// Validates the registration data
+  /// Validates the registration request data
   /// </summary>
   /// <returns>List of validation errors, empty if valid</returns>
   public List<string> Validate()
@@ -70,14 +48,31 @@ public class Registration
     if (string.IsNullOrWhiteSpace(Password))
       errors.Add("Password cannot be empty or whitespace");
 
-    // Username validation - alphanumeric and underscore only
-    if (!string.IsNullOrEmpty(Username) && !System.Text.RegularExpressions.Regex.IsMatch(Username, @"^[a-zA-Z0-9_]+$"))
-      errors.Add("Username can only contain letters, numbers, and underscores");
+    // Check for appropriate format
+    if (!string.IsNullOrEmpty(Username) && Username.Trim().Length != Username.Length)
+      errors.Add("Username cannot start or end with whitespace");
 
-    // Role validation - ensure role is valid if specified
-    if (Role.HasValue && !Enum.IsDefined(typeof(UserRoles), Role.Value))
-      errors.Add("Invalid user role specified");
+    if (!string.IsNullOrEmpty(Email) && Email.Trim().Length != Email.Length)
+      errors.Add("Email cannot start or end with whitespace");
 
     return errors;
+  }
+
+  /// <summary>
+  /// Converts the registration request to a User domain model
+  /// </summary>
+  /// <param name="passwordHash">The hashed password</param>
+  /// <param name="role">The role to assign (defaults to User)</param>
+  /// <returns>User domain model ready for database insertion</returns>
+  public User ToUser(string passwordHash, UserRoles role = UserRoles.User)
+  {
+    return new User
+    {
+      Username = Username.Trim(),
+      Email = Email.Trim().ToLower(),
+      PasswordHash = passwordHash,
+      Role = role,
+      CreatedAt = DateTimeOffset.UtcNow
+    };
   }
 }

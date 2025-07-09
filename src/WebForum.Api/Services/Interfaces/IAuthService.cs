@@ -1,4 +1,6 @@
 using WebForum.Api.Models;
+using WebForum.Api.Models.Request;
+using WebForum.Api.Models.Response;
 
 namespace WebForum.Api.Services.Interfaces;
 
@@ -14,7 +16,7 @@ public interface IAuthService
   /// <returns>Authentication response with token and user information</returns>
   /// <exception cref="InvalidOperationException">Thrown when username or email already exists</exception>
   /// <exception cref="ArgumentException">Thrown when registration data is invalid</exception>
-  Task<AuthResponse> RegisterAsync(Registration registration);
+  Task<Models.Response.AuthResponse> RegisterAsync(RegistrationRequest registration);
 
   /// <summary>
   /// Authenticate user and return access token
@@ -23,7 +25,7 @@ public interface IAuthService
   /// <returns>Authentication response with token and user information</returns>
   /// <exception cref="UnauthorizedAccessException">Thrown when credentials are invalid</exception>
   /// <exception cref="ArgumentException">Thrown when login data is invalid</exception>
-  Task<AuthResponse> LoginAsync(Login login);
+  Task<Models.Response.AuthResponse> LoginAsync(LoginRequest login);
 
   /// <summary>
   /// Refresh access token using refresh token
@@ -32,7 +34,7 @@ public interface IAuthService
   /// <returns>New authentication response with refreshed token</returns>
   /// <exception cref="UnauthorizedAccessException">Thrown when refresh token is invalid or expired</exception>
   /// <exception cref="ArgumentException">Thrown when refresh data is invalid</exception>
-  Task<AuthResponse> RefreshTokenAsync(RefreshToken refreshToken);
+  Task<Models.Response.AuthResponse> RefreshTokenAsync(RefreshToken refreshToken);
 
   /// <summary>
   /// Validate JWT token and extract user information

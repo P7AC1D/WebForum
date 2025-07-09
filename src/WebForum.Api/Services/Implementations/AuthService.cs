@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
 using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
+using WebForum.Api.Models.Request;
+using WebForum.Api.Models.Response;
 using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Services.Implementations;
@@ -31,7 +33,7 @@ public class AuthService : IAuthService
   /// <summary>
   /// Register a new user account
   /// </summary>
-  public async Task<AuthResponse> RegisterAsync(Registration registration)
+  public async Task<Models.Response.AuthResponse> RegisterAsync(RegistrationRequest registration)
   {
     _logger.LogInformation("Starting user registration for email: {Email}", registration.Email);
 
@@ -78,7 +80,7 @@ public class AuthService : IAuthService
       var expiresIn = _securityService.GetTokenExpirationSeconds();
 
       // Return authentication response
-      return AuthResponse.FromUser(user, token, expiresIn);
+      return Models.Response.AuthResponse.FromUser(user, token, expiresIn);
     }
     catch (Exception ex) when (!(ex is ArgumentException || ex is InvalidOperationException))
     {
@@ -90,9 +92,9 @@ public class AuthService : IAuthService
   /// <summary>
   /// Authenticate user and return access token
   /// </summary>
-  public async Task<AuthResponse> LoginAsync(Login login)
+  public async Task<Models.Response.AuthResponse> LoginAsync(LoginRequest login)
   {
-    _logger.LogInformation("Starting user login for email: {Email}", login.Email);
+    _logger.LogInformation("Starting user login for username/email: {UsernameOrEmail}", login.UsernameOrEmail);
 
     try
     {
@@ -100,19 +102,30 @@ public class AuthService : IAuthService
       if (login == null)
         throw new ArgumentException("Login data is required");
 
-      // Find user by email
-      var user = await _userService.GetUserByEmailAsync(login.Email);
+      // Try to find user by email first, then by username
+      User? user = null;
+      
+      // Check if the input looks like an email
+      if (login.UsernameOrEmail.Contains('@'))
+      {
+        user = await _userService.GetUserByEmailAsync(login.UsernameOrEmail);
+      }
+      else
+      {
+        user = await _userService.GetUserByUsernameAsync(login.UsernameOrEmail);
+      }
+
       if (user == null)
       {
-        _logger.LogWarning("Login failed - user not found: {Email}", login.Email);
-        throw new UnauthorizedAccessException("Invalid email or password");
+        _logger.LogWarning("Login failed - user not found: {UsernameOrEmail}", login.UsernameOrEmail);
+        throw new UnauthorizedAccessException("Invalid username/email or password");
       }
 
       // Verify password
       if (!_securityService.VerifyPassword(login.Password, user.PasswordHash))
       {
-        _logger.LogWarning("Login failed - invalid password for user: {Email}", login.Email);
-        throw new UnauthorizedAccessException("Invalid email or password");
+        _logger.LogWarning("Login failed - invalid password for user: {UsernameOrEmail}", login.UsernameOrEmail);
+        throw new UnauthorizedAccessException("Invalid username/email or password");
       }
 
       _logger.LogInformation("User logged in successfully: {UserId}", user.Id);
@@ -122,11 +135,11 @@ public class AuthService : IAuthService
       var expiresIn = _securityService.GetTokenExpirationSeconds();
 
       // Return authentication response
-      return AuthResponse.FromUser(user, token, expiresIn);
+      return Models.Response.AuthResponse.FromUser(user, token, expiresIn);
     }
     catch (Exception ex) when (!(ex is ArgumentException || ex is UnauthorizedAccessException))
     {
-      _logger.LogError(ex, "Error during user login for email: {Email}", login.Email);
+      _logger.LogError(ex, "Error during user login for username/email: {UsernameOrEmail}", login.UsernameOrEmail);
       throw;
     }
   }
@@ -134,7 +147,7 @@ public class AuthService : IAuthService
   /// <summary>
   /// Refresh access token using refresh token
   /// </summary>
-  public async Task<AuthResponse> RefreshTokenAsync(RefreshToken refreshToken)
+  public async Task<Models.Response.AuthResponse> RefreshTokenAsync(RefreshToken refreshToken)
   {
     _logger.LogInformation("Starting token refresh");
 
@@ -178,7 +191,7 @@ public class AuthService : IAuthService
       var expiresIn = _securityService.GetTokenExpirationSeconds();
 
       // Return new authentication response
-      return AuthResponse.FromUser(user, newToken, expiresIn);
+      return Models.Response.AuthResponse.FromUser(user, newToken, expiresIn);
     }
     catch (Exception ex) when (!(ex is ArgumentException || ex is UnauthorizedAccessException))
     {
