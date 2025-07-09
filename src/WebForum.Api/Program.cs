@@ -5,12 +5,20 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using System.Text;
+using WebForum.Api.Converters;
 using WebForum.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure JSON to handle UserRoles enum with both string and integer support
+        options.JsonSerializerOptions.Converters.Add(new UserRolesJsonConverter());
+        // Allow case-insensitive property names
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 
 // Configure routing options for case-insensitive routes
 builder.Services.Configure<RouteOptions>(options =>
