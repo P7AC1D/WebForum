@@ -160,13 +160,14 @@ public static class DatabaseSeeder
   /// </summary>
   private static async Task CreateCommentsAsync(ForumDbContext context, List<UserEntity> users, List<PostEntity> posts, int count)
   {
-    var faker = new Faker<CommentEntity>()
-        .RuleFor(c => c.Content, f => f.Lorem.Sentences(1, 3))
+    var faker = new Faker();
+    var commentFaker = new Faker<CommentEntity>()
+        .RuleFor(c => c.Content, f => string.Join(" ", f.Lorem.Sentences(faker.Random.Int(1, 3))))
         .RuleFor(c => c.PostId, f => f.PickRandom(posts).Id)
         .RuleFor(c => c.AuthorId, f => f.PickRandom(users).Id)
         .RuleFor(c => c.CreatedAt, f => f.Date.PastOffset(90).ToUniversalTime());
 
-    var comments = faker.Generate(count);
+    var comments = commentFaker.Generate(count);
 
     // Ensure comments are created after their associated posts
     foreach (var comment in comments)
@@ -174,7 +175,7 @@ public static class DatabaseSeeder
       var post = posts.First(p => p.Id == comment.PostId);
       if (comment.CreatedAt < post.CreatedAt)
       {
-        comment.CreatedAt = post.CreatedAt.AddMinutes(faker.Random.Int(1, 60 * 24 * 7)); // 1 minute to 1 week after post
+        comment.CreatedAt = post.CreatedAt.AddMinutes(faker.Random.Double(1, 60 * 24 * 7)); // 1 minute to 1 week after post
       }
     }
 
