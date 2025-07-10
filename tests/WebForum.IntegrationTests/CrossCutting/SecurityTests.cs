@@ -22,7 +22,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task UnauthorizedAccess_ToProtectedEndpoints_ShouldReturnUnauthorized()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var post = await CreateTestPostAsync(user.Id);
 
@@ -57,7 +56,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task RoleBasedAuthorization_ShouldEnforcePermissions()
   {
     // Arrange
-    await InitializeTestAsync();
     var regularUser = await CreateTestUserAsync("regular", "regular@example.com", UserRoles.User);
     var moderator = await CreateTestUserAsync("moderator", "mod@example.com", UserRoles.Moderator);
 
@@ -87,7 +85,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task AuthenticationWithInvalidToken_ShouldReturnUnauthorized()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
 
     var invalidTokens = new[]
@@ -129,7 +126,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task InputSanitization_ShouldPreventXSSAndInjection()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -189,8 +185,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task SecurityHeaders_ShouldBePresent()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Act
     var response = await Client.GetAsync("/api/posts");
 
@@ -233,8 +227,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task CORS_ShouldAllowConfiguredOrigins()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Act - Simulate a CORS preflight request
     var request = new HttpRequestMessage(HttpMethod.Options, "/api/posts");
     request.Headers.Add("Origin", "https://localhost:3000");
@@ -273,8 +265,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task PasswordSecurity_ShouldNotExposePasswords()
   {
     // Arrange
-    await InitializeTestAsync();
-
     var registrationRequest = new RegistrationRequest
     {
       Username = "securityuser",
@@ -310,7 +300,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task RateLimiting_ShouldPreventAbuse()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -353,7 +342,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task SQLInjection_ShouldNotAffectDatabase()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
 
     // SQL injection payloads
@@ -406,7 +394,6 @@ public class SecurityTests : IntegrationTestBase
   public async Task SessionSecurity_ShouldHandleTokenProperly()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 

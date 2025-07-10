@@ -23,9 +23,7 @@ public class AuthenticationWorkflowTests : IntegrationTestBase
   public async Task CompleteAuthenticationFlow_RegisterLoginCreateContent_ShouldWork()
   {
     // Arrange
-    await InitializeTestAsync();
-
-    var registrationRequest = new RegistrationRequest
+        var registrationRequest = new RegistrationRequest
     {
       Username = "newuser123",
       Email = "newuser@example.com",
@@ -68,7 +66,6 @@ public class AuthenticationWorkflowTests : IntegrationTestBase
   public async Task LoginRefreshTokenFlow_ShouldMaintainAuthentication()
   {
     // Arrange
-    await InitializeTestAsync();
     var testUser = await CreateTestUserAsync("loginuser", "login@example.com");
 
     var loginRequest = new LoginRequest
@@ -115,7 +112,6 @@ public class AuthenticationWorkflowTests : IntegrationTestBase
   public async Task RoleBasedAccess_ShouldEnforcePermissions()
   {
     // Arrange
-    await InitializeTestAsync();
     var regularUser = await CreateTestUserAsync("regular", "regular@example.com", UserRoles.User);
     var moderator = await CreateTestUserAsync("moderator", "mod@example.com", UserRoles.Moderator);
 
@@ -146,8 +142,6 @@ public class AuthenticationWorkflowTests : IntegrationTestBase
   public async Task InvalidCredentials_ShouldReturnUnauthorized()
   {
     // Arrange
-    await InitializeTestAsync();
-
     var invalidLoginRequest = new LoginRequest
     {
       Email = "nonexistent@example.com",
@@ -165,7 +159,6 @@ public class AuthenticationWorkflowTests : IntegrationTestBase
   public async Task ExpiredToken_ShouldRequireRefresh()
   {
     // Arrange
-    await InitializeTestAsync();
     var testUser = await CreateTestUserAsync();
 
     // Create a JWT token that's expired (valid format but expired)
@@ -197,7 +190,6 @@ public class AuthenticationWorkflowTests : IntegrationTestBase
   public async Task DuplicateRegistration_ShouldReturnConflict()
   {
     // Arrange
-    await InitializeTestAsync();
     var existingUser = await CreateTestUserAsync("existing", "existing@example.com");
 
     var duplicateRegistrationRequest = new RegistrationRequest
@@ -219,8 +211,6 @@ public class AuthenticationWorkflowTests : IntegrationTestBase
   public async Task UnauthorizedAccess_ToProtectedEndpoint_ShouldReturnUnauthorized()
   {
     // Arrange
-    await InitializeTestAsync();
-
     var createPostRequest = new CreatePostRequest
     {
       Title = "Unauthorized Post",

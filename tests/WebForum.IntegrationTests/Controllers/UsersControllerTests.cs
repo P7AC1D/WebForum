@@ -22,7 +22,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUser_WithValidId_ShouldReturnUserInfo()
   {
     // Arrange
-    await InitializeTestAsync();
     var testUser = await CreateTestUserAsync("testuser", "test@example.com");
 
     // Act
@@ -44,8 +43,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUser_WithInvalidId_ShouldReturnNotFound()
   {
     // Arrange
-    await InitializeTestAsync();
-
     var invalidIds = new[] { 0, -1, 999999, int.MaxValue };
 
     foreach (var invalidId in invalidIds)
@@ -63,7 +60,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUser_AuthenticatedRequest_ShouldReturnUserInfo()
   {
     // Arrange
-    await InitializeTestAsync();
     var testUser = await CreateTestUserAsync("authuser", "auth@example.com");
     var authenticatedClient = CreateAuthenticatedClient(testUser.Id, testUser.Username);
 
@@ -83,7 +79,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_WithValidUserId_ShouldReturnUserPosts()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var otherUser = await CreateTestUserAsync("other", "other@example.com");
 
@@ -123,7 +118,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_WithPagination_ShouldRespectPaginationParameters()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("prolificauthor", "prolific@example.com");
 
     // Create many posts
@@ -171,8 +165,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_WithInvalidUserId_ShouldReturnNotFound()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Act
     var response = await Client.GetAsync("/api/users/999999/posts");
 
@@ -184,7 +176,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_ForUserWithNoPosts_ShouldReturnEmptyList()
   {
     // Arrange
-    await InitializeTestAsync();
     var userWithNoPosts = await CreateTestUserAsync("nopostuser", "noposts@example.com");
 
     // Act
@@ -204,7 +195,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_WithInvalidPagination_ShouldHandleGracefully()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("testauthor", "testauthor@example.com");
     await CreateTestPostAsync(author.Id, "Test Post", "Test Content");
 
@@ -241,7 +231,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_WithDateFiltering_ShouldFilterCorrectly()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("dateauthor", "date@example.com");
 
     // Create posts (they will have current timestamps)
@@ -272,7 +261,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_WithSorting_ShouldSortCorrectly()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("sortauthor", "sort@example.com");
 
     // Create posts with known titles for sorting
@@ -307,7 +295,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUser_MultipleConcurrentRequests_ShouldHandleCorrectly()
   {
     // Arrange
-    await InitializeTestAsync();
     var testUser = await CreateTestUserAsync("concurrentuser", "concurrent@example.com");
 
     // Act - Make multiple concurrent requests for the same user
@@ -335,7 +322,6 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task GetUserPosts_WithAuthentication_ShouldNotExposePrivateData()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("privateauthor", "private@example.com");
     var viewer = await CreateTestUserAsync("viewer", "viewer@example.com");
 
@@ -365,9 +351,8 @@ public class UsersControllerTests : IntegrationTestBase
   public async Task UserEndpoints_PerformanceTest_ShouldHandleManyUsers()
   {
     // Arrange
-    await InitializeTestAsync();
     var users = await Task.WhenAll(Enumerable.Range(1, 20).Select(i =>
-        CreateTestUserAsync($"perfuser{i}", $"perf{i}@example.com")));
+    CreateTestUserAsync($"perfuser{i}", $"perf{i}@example.com")));
 
     // Create posts for each user
     var postTasks = users.SelectMany(user =>

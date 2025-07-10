@@ -23,7 +23,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPosts_WithDefaultParameters_ShouldReturnPagedResults()
   {
     // Arrange
-    await InitializeTestAsync();
     await SeedTestDataAsync(userCount: 2, postCount: 10);
 
     // Act
@@ -44,7 +43,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPosts_WithCustomPagination_ShouldRespectParameters()
   {
     // Arrange
-    await InitializeTestAsync();
     await SeedTestDataAsync(userCount: 2, postCount: 25);
 
     // Act
@@ -65,8 +63,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPosts_WithInvalidPagination_ShouldHandleGracefully()
   {
     // Arrange
-    await InitializeTestAsync();
-
     var testCases = new[]
     {
             "/api/posts?page=0&pageSize=10",        // Invalid page (too low)
@@ -100,7 +96,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPost_WithValidId_ShouldReturnPost()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var post = await CreateTestPostAsync(user.Id, "Test Post", "Test content");
 
@@ -122,8 +117,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPost_WithInvalidId_ShouldReturnNotFound()
   {
     // Arrange
-    await InitializeTestAsync();
-
     var invalidIds = new[] { 0, -1, 999999, int.MaxValue };
 
     foreach (var invalidId in invalidIds)
@@ -141,7 +134,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task CreatePost_WithValidData_ShouldCreatePost()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -174,8 +166,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task CreatePost_WithoutAuthentication_ShouldReturnUnauthorized()
   {
     // Arrange
-    await InitializeTestAsync();
-
     var createRequest = new CreatePostRequest
     {
       Title = "Unauthorized Post",
@@ -197,7 +187,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task CreatePost_WithInvalidData_ShouldReturnBadRequest(string title, string content)
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -218,7 +207,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task CreatePost_WithMaxLengthData_ShouldSucceed()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -243,7 +231,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task CreatePost_WithOverMaxLengthData_ShouldReturnBadRequest()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -264,7 +251,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task LikePost_ShouldToggleLikeStatus()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var liker = await CreateTestUserAsync("liker", "liker@example.com");
     var post = await CreateTestPostAsync(author.Id);
@@ -290,7 +276,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task LikePost_WithInvalidPostId_ShouldReturnNotFound()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -305,7 +290,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task LikePost_WithoutAuthentication_ShouldReturnUnauthorized()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var post = await CreateTestPostAsync(user.Id);
 
@@ -320,7 +304,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPostComments_ShouldReturnCommentsWithPagination()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var post = await CreateTestPostAsync(author.Id);
 
@@ -351,7 +334,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task CreateComment_WithValidData_ShouldCreateComment()
   {
     // Arrange
-    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var commenter = await CreateTestUserAsync("commenter", "commenter@example.com");
     var post = await CreateTestPostAsync(author.Id);
@@ -381,7 +363,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPosts_WithAuthorFilter_ShouldReturnAuthorPosts()
   {
     // Arrange
-    await InitializeTestAsync();
     var author1 = await CreateTestUserAsync("author1", "author1@example.com");
     var author2 = await CreateTestUserAsync("author2", "author2@example.com");
 
@@ -405,7 +386,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPosts_WithDateFilter_ShouldFilterByDateRange()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
 
     // Create posts (these will have current timestamp)
@@ -434,7 +414,6 @@ public class PostsControllerTests : IntegrationTestBase
   public async Task GetPosts_WithSorting_ShouldSortCorrectly()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
 
     // Create posts with known titles for sorting

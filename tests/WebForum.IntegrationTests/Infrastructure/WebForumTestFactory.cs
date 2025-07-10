@@ -184,15 +184,11 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     try
     {
-      // Ensure database is created and migrations are applied
-      await context.Database.MigrateAsync();
+      // First ensure database exists and is accessible
+      await context.Database.EnsureCreatedAsync();
       
-      // Verify that the database is properly set up by checking if tables exist
-      var tablesExist = await context.Database.CanConnectAsync();
-      if (!tablesExist)
-      {
-        throw new InvalidOperationException("Database connection failed after migration");
-      }
+      // Apply any pending migrations
+      await context.Database.MigrateAsync();
     }
     catch (Exception ex)
     {
@@ -210,34 +206,17 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     try
     {
-      // Check if tables exist before trying to truncate them
-      var tablesExist = await context.Database.CanConnectAsync();
-      if (!tablesExist)
-      {
-        // If we can't connect, try to ensure database is created first
-        await EnsureDatabaseCreatedAsync();
-        return;
-      }
-
-      // Verify specific tables exist before truncating
-      var postTagsExists = await context.Database.ExecuteSqlRawAsync(
-        "SELECT 1 FROM information_schema.tables WHERE table_name = 'PostTags' LIMIT 1") >= 0;
-
-      if (!postTagsExists)
-      {
-        // Tables don't exist yet, ensure database is created
-        await EnsureDatabaseCreatedAsync();
-        return;
-      }
-
+      // Simple approach: just delete all data in the correct order
+      // This avoids the complex table existence checks that were causing issues
+      
       // Delete data in reverse order to respect foreign key constraints
-      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"PostTags\" CASCADE");
-      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Likes\" CASCADE");
-      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Comments\" CASCADE");
-      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Posts\" CASCADE");
-      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Users\" CASCADE");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"PostTags\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Likes\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Comments\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Posts\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Users\"");
 
-      // Reset sequences
+      // Reset sequences to start from 1
       await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Users_Id_seq\" RESTART WITH 1");
       await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Posts_Id_seq\" RESTART WITH 1");
       await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Comments_Id_seq\" RESTART WITH 1");
@@ -246,8 +225,21 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     }
     catch (Exception)
     {
-      // If cleanup fails, try to recreate the database
+      // If cleanup fails, try to ensure database is created first
       await EnsureDatabaseCreatedAsync();
+      
+      // Try cleanup again
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"PostTags\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Likes\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Comments\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Posts\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Users\"");
+
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Users_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Posts_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Comments_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Likes_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"PostTags_Id_seq\" RESTART WITH 1");
     }
   }
 

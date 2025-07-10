@@ -21,7 +21,6 @@ public class PerformanceTests : IntegrationTestBase
   public async Task Api_ShouldHandleBasicOperationsWithinReasonableTime()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -52,14 +51,12 @@ public class PerformanceTests : IntegrationTestBase
     getPostsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     postRetrievalStopwatch.ElapsedMilliseconds.Should().BeLessThan(2000); // 2 seconds max
 
-    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldHandleConcurrentRegistrations()
   {
     // Arrange
-    await InitializeTestAsync();
     const int concurrentRequests = 10;
 
     // Act
@@ -82,14 +79,12 @@ public class PerformanceTests : IntegrationTestBase
     var usernames = results.Select(r => r.Username).ToHashSet();
     usernames.Should().HaveCount(concurrentRequests);
 
-    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldHandleConcurrentPostCreations()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -120,14 +115,12 @@ public class PerformanceTests : IntegrationTestBase
     // Should complete within reasonable time
     stopwatch.ElapsedMilliseconds.Should().BeLessThan(10000); // 10 seconds for 5 concurrent posts
 
-    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldHandleLargeDataSetsWithPagination()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -172,14 +165,12 @@ public class PerformanceTests : IntegrationTestBase
     // Pagination should be fast even with multiple pages
     pageRetrievalStopwatch.ElapsedMilliseconds.Should().BeLessThan(5000); // 5 seconds for 3 page requests
 
-    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldHandleRepeatedRequests()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -211,14 +202,12 @@ public class PerformanceTests : IntegrationTestBase
     // Repeated requests should complete quickly (caching, etc.)
     stopwatch.ElapsedMilliseconds.Should().BeLessThan(8000); // 8 seconds for 20 requests
 
-    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldHandleSearchOperationsEfficiently()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -254,15 +243,12 @@ public class PerformanceTests : IntegrationTestBase
     // Search operations should complete within reasonable time
     searchStopwatch.ElapsedMilliseconds.Should().BeLessThan(6000); // 6 seconds for 5 search operations
 
-    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldMaintainResponseTimesUnderLoad()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Create multiple users for load testing
     var users = new List<UserInfo>();
     for (int i = 0; i < 5; i++)
@@ -302,7 +288,6 @@ public class PerformanceTests : IntegrationTestBase
     // Load test should complete within reasonable time
     loadStopwatch.ElapsedMilliseconds.Should().BeLessThan(20000); // 20 seconds for mixed load
 
-    await CleanupTestAsync();
   }
 
   /// <summary>

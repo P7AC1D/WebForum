@@ -15,11 +15,9 @@ public class FrameworkValidationTests : IntegrationTestBase
   }
 
   [Fact]
-  public async Task TestFactory_ShouldInitializeSuccessfully()
+  public void TestFactory_ShouldInitializeSuccessfully()
   {
     // Arrange & Act
-    await InitializeTestAsync();
-
     // Assert
     Factory.Should().NotBeNull();
     Factory.ConnectionString.Should().NotBeNullOrEmpty();
@@ -30,7 +28,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task Database_ShouldCreateAndConnect()
   {
     // Arrange & Act
-    await InitializeTestAsync();
     using var dbContext = GetDbContext();
 
     // Assert
@@ -42,7 +39,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task Database_ShouldApplyMigrations()
   {
     // Arrange & Act
-    await InitializeTestAsync();
     await Factory.EnsureDatabaseCreatedAsync();
     using var dbContext = GetDbContext();
 
@@ -63,8 +59,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task TestData_ShouldGenerateSuccessfully()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Act
     var testData = await SeedTestDataAsync(userCount: 3, postCount: 5, commentCount: 8, likeCount: 6);
 
@@ -112,7 +106,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task Database_ShouldCleanSuccessfully()
   {
     // Arrange
-    await InitializeTestAsync();
     await SeedTestDataAsync(userCount: 2, postCount: 3);
 
     using (var dbContext = GetDbContext())
@@ -144,8 +137,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task HttpClient_ShouldMakeSuccessfulRequests()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Act
     var response = await Client.GetAsync("/api/posts");
 
@@ -159,8 +150,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task TestUsers_ShouldCreateWithKnownCredentials()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Act
     var user1 = await CreateTestUserAsync("testuser1", "test1@example.com", WebForum.Api.Models.UserRoles.User);
     var user2 = await CreateTestUserAsync("testmod", "mod@example.com", WebForum.Api.Models.UserRoles.User | WebForum.Api.Models.UserRoles.Moderator);
@@ -180,7 +169,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task TestPosts_ShouldCreateWithKnownData()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
 
     // Act
@@ -197,7 +185,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task TestComments_ShouldCreateWithKnownData()
   {
     // Arrange
-    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var post = await CreateTestPostAsync(user.Id);
 
@@ -215,8 +202,6 @@ public class FrameworkValidationTests : IntegrationTestBase
   public async Task MultipleTests_ShouldIsolateDataCorrectly()
   {
     // Arrange
-    await InitializeTestAsync();
-
     // Act & Assert - First test operation
     var testData1 = await SeedTestDataAsync(userCount: 2);
     using (var dbContext1 = GetDbContext())
@@ -226,8 +211,6 @@ public class FrameworkValidationTests : IntegrationTestBase
     }
 
     // Clean database
-    await CleanupTestAsync();
-
     // Act & Assert - Second test operation
     var testData2 = await SeedTestDataAsync(userCount: 3);
     using var dbContext2 = GetDbContext();
