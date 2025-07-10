@@ -180,7 +180,7 @@ public class PostsController : ControllerBase
       var commentCount = await _commentService.GetCommentCountForPostAsync(post.Id);
       var likeCount = await GetLikeCountForPostAsync(post.Id);
       var isTagged = await _moderationService.IsPostTaggedAsync(post.Id);
-      
+
       // Get author username
       var usernames = await _userService.GetUsernamesByIdsAsync(new[] { post.AuthorId });
       var authorUsername = usernames.GetValueOrDefault(post.AuthorId, "Unknown User");
@@ -393,7 +393,7 @@ public class PostsController : ControllerBase
       var usernames = await _userService.GetUsernamesByIdsAsync(commentAuthorIds);
 
       // Convert to response models with author usernames
-      var responseItems = result.Items.Select(comment => 
+      var responseItems = result.Items.Select(comment =>
       {
         var authorUsername = usernames.GetValueOrDefault(comment.AuthorId, "Unknown User");
         return CommentResponse.FromComment(comment, authorUsername);
@@ -653,6 +653,79 @@ public class PostsController : ControllerBase
     catch (Exception ex)
     {
       _logger.LogError(ex, "Error removing tag from post with ID: {PostId}", id);
+      return StatusCode(500, "An error occurred while removing the tag from the post");
+    }
+  }
+
+  /// <summary>
+  /// Remove a specific moderation tag from a post (Moderator only)
+  /// </summary>
+  /// <param name="id">Post ID to remove tag from (must be positive integer)</param>
+  /// <param name="tagName">Name of the tag to remove</param>
+  /// <returns>Confirmation of specific tag removal with post details</returns>
+  /// <response code="200">Tag removed successfully</response>
+  /// <response code="400">Invalid post ID or tag name</response>
+  /// <response code="401">User not authenticated</response>
+  /// <response code="403">User is not a moderator</response>
+  /// <response code="404">Post not found or tag not found</response>
+  /// <response code="500">Internal server error during tag removal</response>
+  [HttpDelete("{id:int}/tags/{tagName}")]
+  [Authorize(Roles = "Moderator")]
+  [ProducesResponseType(typeof(Models.Response.ModerationResponse), 200)]
+  [ProducesResponseType(typeof(ProblemDetails), 400)]
+  [ProducesResponseType(typeof(ProblemDetails), 401)]
+  [ProducesResponseType(typeof(ProblemDetails), 403)]
+  [ProducesResponseType(typeof(ProblemDetails), 404)]
+  [ProducesResponseType(typeof(ProblemDetails), 500)]
+  public async Task<IActionResult> RemoveSpecificTagFromPost(int id, string tagName)
+  {
+    try
+    {
+      _logger.LogInformation("Removing tag '{TagName}' from post with ID: {PostId}", tagName, id);
+
+      if (id <= 0)
+      {
+        _logger.LogWarning("Invalid post ID: {PostId}", id);
+        return BadRequest("Post ID must be greater than zero");
+      }
+
+      if (string.IsNullOrWhiteSpace(tagName))
+      {
+        _logger.LogWarning("Invalid tag name: {TagName}", tagName);
+        return BadRequest("Tag name cannot be empty");
+      }
+
+      // Extract moderator user ID from JWT claims
+      var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+      if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int moderatorId))
+      {
+        _logger.LogWarning("Could not extract moderator ID from JWT claims");
+        return Unauthorized("Invalid authentication token");
+      }
+
+      var response = await _moderationService.RemoveSpecificTagFromPostAsync(id, tagName, moderatorId);
+
+      _logger.LogInformation("Tag '{TagName}' removed from post {PostId} by moderator {ModeratorId}", tagName, id, moderatorId);
+      return Ok(response);
+    }
+    catch (ArgumentException ex)
+    {
+      _logger.LogWarning("Invalid argument: {Message}", ex.Message);
+      return BadRequest(ex.Message);
+    }
+    catch (KeyNotFoundException ex)
+    {
+      _logger.LogWarning("Post or tag not found: {Message}", ex.Message);
+      return NotFound(ex.Message);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+      _logger.LogWarning("Unauthorized access: {Message}", ex.Message);
+      return StatusCode(403, ex.Message);
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error removing tag '{TagName}' from post with ID: {PostId}", tagName, id);
       return StatusCode(500, "An error occurred while removing the tag from the post");
     }
   }

@@ -15,16 +15,16 @@ namespace WebForum.IntegrationTests.CrossCutting;
 /// </summary>
 public class ValidationTests : IntegrationTestBase
 {
-    public ValidationTests(WebForumTestFactory factory) : base(factory) { }
+  public ValidationTests(WebForumTestFactory factory) : base(factory) { }
 
-    [Fact]
-    public async Task Registration_ShouldValidateRequiredFields()
+  [Fact]
+  public async Task Registration_ShouldValidateRequiredFields()
+  {
+    // Arrange
+    await InitializeTestAsync();
+
+    var invalidRequests = new[]
     {
-        // Arrange
-        await InitializeTestAsync();
-
-        var invalidRequests = new[]
-        {
             new RegistrationRequest { Username = "", Email = "test@test.com", Password = "Test123!" },
             new RegistrationRequest { Username = "testuser", Email = "", Password = "Test123!" },
             new RegistrationRequest { Username = "testuser", Email = "test@test.com", Password = "" },
@@ -33,24 +33,24 @@ public class ValidationTests : IntegrationTestBase
             new RegistrationRequest { Username = "testuser", Email = "test@test.com", Password = null! }
         };
 
-        // Act & Assert
-        foreach (var request in invalidRequests)
-        {
-            var response = await Client.PostAsJsonAsync("/api/auth/register", request);
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
-
-        await CleanupTestAsync();
+    // Act & Assert
+    foreach (var request in invalidRequests)
+    {
+      var response = await Client.PostAsJsonAsync("/api/auth/register", request);
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task Registration_ShouldValidateEmailFormat()
-    {
-        // Arrange
-        await InitializeTestAsync();
+    await CleanupTestAsync();
+  }
 
-        var invalidEmails = new[]
-        {
+  [Fact]
+  public async Task Registration_ShouldValidateEmailFormat()
+  {
+    // Arrange
+    await InitializeTestAsync();
+
+    var invalidEmails = new[]
+    {
             "invalid-email",
             "invalid@",
             "@invalid.com",
@@ -61,164 +61,164 @@ public class ValidationTests : IntegrationTestBase
             "invalid..email@test.com"
         };
 
-        // Act & Assert
-        foreach (var email in invalidEmails)
-        {
-            var request = new RegistrationRequest
-            {
-                Username = "testuser",
-                Email = email,
-                Password = "Test123!"
-            };
+    // Act & Assert
+    foreach (var email in invalidEmails)
+    {
+      var request = new RegistrationRequest
+      {
+        Username = "testuser",
+        Email = email,
+        Password = "Test123!"
+      };
 
-            var response = await Client.PostAsJsonAsync("/api/auth/register", request);
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
-
-        await CleanupTestAsync();
+      var response = await Client.PostAsJsonAsync("/api/auth/register", request);
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task Registration_ShouldValidatePasswordRequirements()
-    {
-        // Arrange
-        await InitializeTestAsync();
+    await CleanupTestAsync();
+  }
 
-        var weakPasswords = new[]
-        {
+  [Fact]
+  public async Task Registration_ShouldValidatePasswordRequirements()
+  {
+    // Arrange
+    await InitializeTestAsync();
+
+    var weakPasswords = new[]
+    {
             "weak",           // Too short (4 characters)
             "short",          // Too short (5 characters)
             "1234567"         // Too short (7 characters)
         };
 
-        // Act & Assert
-        foreach (var password in weakPasswords)
-        {
-            var request = new RegistrationRequest
-            {
-                Username = "testuser",
-                Email = "test@test.com",
-                Password = password
-            };
+    // Act & Assert
+    foreach (var password in weakPasswords)
+    {
+      var request = new RegistrationRequest
+      {
+        Username = "testuser",
+        Email = "test@test.com",
+        Password = password
+      };
 
-            var response = await Client.PostAsJsonAsync("/api/auth/register", request);
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
-
-        // Test that an 8-character password is accepted
-        var validRequest = new RegistrationRequest
-        {
-            Username = "validuser",
-            Email = "valid@test.com",
-            Password = "12345678"  // Exactly 8 characters
-        };
-
-        var validResponse = await Client.PostAsJsonAsync("/api/auth/register", validRequest);
-        validResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        await CleanupTestAsync();
+      var response = await Client.PostAsJsonAsync("/api/auth/register", request);
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task CreatePost_ShouldValidateRequiredFields()
+    // Test that an 8-character password is accepted
+    var validRequest = new RegistrationRequest
     {
-        // Arrange
-        await InitializeTestAsync();
-        var user = await CreateTestUserAsync();
-        var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
+      Username = "validuser",
+      Email = "valid@test.com",
+      Password = "12345678"  // Exactly 8 characters
+    };
 
-        var invalidRequests = new[]
-        {
+    var validResponse = await Client.PostAsJsonAsync("/api/auth/register", validRequest);
+    validResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+    await CleanupTestAsync();
+  }
+
+  [Fact]
+  public async Task CreatePost_ShouldValidateRequiredFields()
+  {
+    // Arrange
+    await InitializeTestAsync();
+    var user = await CreateTestUserAsync();
+    var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
+
+    var invalidRequests = new[]
+    {
             new CreatePostRequest { Title = "", Content = "Valid content" },
             new CreatePostRequest { Title = "Valid title", Content = "" },
             new CreatePostRequest { Title = null!, Content = "Valid content" },
             new CreatePostRequest { Title = "Valid title", Content = null! }
         };
 
-        // Act & Assert
-        foreach (var request in invalidRequests)
-        {
-            var response = await authenticatedClient.PostAsJsonAsync("/api/posts", request);
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
-
-        await CleanupTestAsync();
+    // Act & Assert
+    foreach (var request in invalidRequests)
+    {
+      var response = await authenticatedClient.PostAsJsonAsync("/api/posts", request);
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task CreatePost_ShouldValidateFieldLengths()
+    await CleanupTestAsync();
+  }
+
+  [Fact]
+  public async Task CreatePost_ShouldValidateFieldLengths()
+  {
+    // Arrange
+    await InitializeTestAsync();
+    var user = await CreateTestUserAsync();
+    var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
+
+    var tooLongTitle = new string('A', 201); // Assuming max title length is 200
+    var tooLongContent = new string('B', 10001); // Assuming max content length is 10000
+
+    var invalidRequests = new[]
     {
-        // Arrange
-        await InitializeTestAsync();
-        var user = await CreateTestUserAsync();
-        var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
-
-        var tooLongTitle = new string('A', 201); // Assuming max title length is 200
-        var tooLongContent = new string('B', 10001); // Assuming max content length is 10000
-
-        var invalidRequests = new[]
-        {
             new CreatePostRequest { Title = tooLongTitle, Content = "Valid content" },
             new CreatePostRequest { Title = "Valid title", Content = tooLongContent }
         };
 
-        // Act & Assert
-        foreach (var request in invalidRequests)
-        {
-            var response = await authenticatedClient.PostAsJsonAsync("/api/posts", request);
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
-
-        await CleanupTestAsync();
+    // Act & Assert
+    foreach (var request in invalidRequests)
+    {
+      var response = await authenticatedClient.PostAsJsonAsync("/api/posts", request);
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task CreateComment_ShouldValidateRequiredFields()
+    await CleanupTestAsync();
+  }
+
+  [Fact]
+  public async Task CreateComment_ShouldValidateRequiredFields()
+  {
+    // Arrange
+    await InitializeTestAsync();
+    var user = await CreateTestUserAsync();
+    var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
+
+    // Create a post first
+    var postRequest = new CreatePostRequest
     {
-        // Arrange
-        await InitializeTestAsync();
-        var user = await CreateTestUserAsync();
-        var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
+      Title = "Test Post",
+      Content = "Test content"
+    };
 
-        // Create a post first
-        var postRequest = new CreatePostRequest
-        {
-            Title = "Test Post",
-            Content = "Test content"
-        };
+    var postResponse = await authenticatedClient.PostAsJsonAsync("/api/posts", postRequest);
+    var post = await postResponse.Content.ReadFromJsonAsync<PostResponse>();
 
-        var postResponse = await authenticatedClient.PostAsJsonAsync("/api/posts", postRequest);
-        var post = await postResponse.Content.ReadFromJsonAsync<PostResponse>();
-
-        var invalidRequests = new[]
-        {
+    var invalidRequests = new[]
+    {
             new CreateCommentRequest { Content = "" },
             new CreateCommentRequest { Content = null! }
         };
 
-        // Act & Assert
-        foreach (var request in invalidRequests)
-        {
-            var response = await authenticatedClient.PostAsJsonAsync($"/api/posts/{post!.Id}/comments", request);
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
-
-        // Test commenting on non-existent post
-        var validRequest = new CreateCommentRequest { Content = "Valid content" };
-        var nonExistentPostResponse = await authenticatedClient.PostAsJsonAsync("/api/posts/99999/comments", validRequest);
-        nonExistentPostResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
-
-        await CleanupTestAsync();
+    // Act & Assert
+    foreach (var request in invalidRequests)
+    {
+      var response = await authenticatedClient.PostAsJsonAsync($"/api/posts/{post!.Id}/comments", request);
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task Api_ShouldRejectMalformedJson()
-    {
-        // Arrange
-        await InitializeTestAsync();
+    // Test commenting on non-existent post
+    var validRequest = new CreateCommentRequest { Content = "Valid content" };
+    var nonExistentPostResponse = await authenticatedClient.PostAsJsonAsync("/api/posts/99999/comments", validRequest);
+    nonExistentPostResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-        var malformedJsons = new[]
-        {
+    await CleanupTestAsync();
+  }
+
+  [Fact]
+  public async Task Api_ShouldRejectMalformedJson()
+  {
+    // Arrange
+    await InitializeTestAsync();
+
+    var malformedJsons = new[]
+    {
             "{invalid json}",
             "{'single quotes': 'not valid json'}",
             "{\"unclosed\": \"string}",
@@ -228,57 +228,57 @@ public class ValidationTests : IntegrationTestBase
             "undefined"
         };
 
-        // Act & Assert
-        foreach (var json in malformedJsons)
-        {
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await Client.PostAsync("/api/auth/register", content);
-            
-            // Should return BadRequest for malformed JSON
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
+    // Act & Assert
+    foreach (var json in malformedJsons)
+    {
+      var content = new StringContent(json, Encoding.UTF8, "application/json");
+      var response = await Client.PostAsync("/api/auth/register", content);
 
-        await CleanupTestAsync();
+      // Should return BadRequest for malformed JSON
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task Api_ShouldRejectOversizedPayloads()
+    await CleanupTestAsync();
+  }
+
+  [Fact]
+  public async Task Api_ShouldRejectOversizedPayloads()
+  {
+    // Arrange
+    await InitializeTestAsync();
+
+    // Create an extremely large payload (assuming there's a limit)
+    var oversizedContent = new string('X', 1024 * 1024 * 2); // 2MB payload
+
+    var oversizedRequest = new CreatePostRequest
     {
-        // Arrange
-        await InitializeTestAsync();
+      Title = "Test",
+      Content = oversizedContent
+    };
 
-        // Create an extremely large payload (assuming there's a limit)
-        var oversizedContent = new string('X', 1024 * 1024 * 2); // 2MB payload
+    var user = await CreateTestUserAsync();
+    var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
-        var oversizedRequest = new CreatePostRequest
-        {
-            Title = "Test",
-            Content = oversizedContent
-        };
+    // Act
+    var response = await authenticatedClient.PostAsJsonAsync("/api/posts", oversizedRequest);
 
-        var user = await CreateTestUserAsync();
-        var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
+    // Assert
+    // Should reject oversized payload (either BadRequest or PayloadTooLarge)
+    response.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.RequestEntityTooLarge);
 
-        // Act
-        var response = await authenticatedClient.PostAsJsonAsync("/api/posts", oversizedRequest);
+    await CleanupTestAsync();
+  }
 
-        // Assert
-        // Should reject oversized payload (either BadRequest or PayloadTooLarge)
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.RequestEntityTooLarge);
+  [Fact]
+  public async Task Api_ShouldValidatePaginationParameters()
+  {
+    // Arrange
+    await InitializeTestAsync();
+    var user = await CreateTestUserAsync();
+    var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
-        await CleanupTestAsync();
-    }
-
-    [Fact]
-    public async Task Api_ShouldValidatePaginationParameters()
+    var invalidPaginationUrls = new[]
     {
-        // Arrange
-        await InitializeTestAsync();
-        var user = await CreateTestUserAsync();
-        var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
-
-        var invalidPaginationUrls = new[]
-        {
             "/api/posts?page=0",          // Page must be >= 1
             "/api/posts?page=-1",         // Page must be >= 1
             "/api/posts?pageSize=0",      // PageSize must be >= 1
@@ -288,26 +288,26 @@ public class ValidationTests : IntegrationTestBase
             "/api/posts?pageSize=xyz"     // PageSize must be numeric
         };
 
-        // Act & Assert
-        foreach (var url in invalidPaginationUrls)
-        {
-            var response = await authenticatedClient.GetAsync(url);
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        }
-
-        await CleanupTestAsync();
+    // Act & Assert
+    foreach (var url in invalidPaginationUrls)
+    {
+      var response = await authenticatedClient.GetAsync(url);
+      response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task Api_ShouldValidateContentType()
+    await CleanupTestAsync();
+  }
+
+  [Fact]
+  public async Task Api_ShouldValidateContentType()
+  {
+    // Arrange
+    await InitializeTestAsync();
+
+    var validJson = """{"username": "test", "email": "test@test.com", "password": "Test123!", "confirmPassword": "Test123!"}""";
+
+    var invalidContentTypes = new[]
     {
-        // Arrange
-        await InitializeTestAsync();
-
-        var validJson = """{"username": "test", "email": "test@test.com", "password": "Test123!", "confirmPassword": "Test123!"}""";
-
-        var invalidContentTypes = new[]
-        {
             "text/plain",
             "application/xml",
             "text/html",
@@ -315,42 +315,42 @@ public class ValidationTests : IntegrationTestBase
             "multipart/form-data"
         };
 
-        // Act & Assert
-        foreach (var contentType in invalidContentTypes)
-        {
-            var content = new StringContent(validJson, Encoding.UTF8, contentType);
-            var response = await Client.PostAsync("/api/auth/register", content);
-            
-            // Should reject non-JSON content types for JSON endpoints
-            // Note: ASP.NET Core returns BadRequest instead of UnsupportedMediaType for some invalid content types
-            response.StatusCode.Should().BeOneOf(HttpStatusCode.UnsupportedMediaType, HttpStatusCode.BadRequest);
-        }
-
-        await CleanupTestAsync();
-    }
-
-    /// <summary>
-    /// Helper method to create a test user for validation tests
-    /// </summary>
-    private async Task<UserInfo> CreateTestUserAsync()
+    // Act & Assert
+    foreach (var contentType in invalidContentTypes)
     {
-        var registrationRequest = new RegistrationRequest
-        {
-            Username = $"user_{Guid.NewGuid():N}",
-            Email = $"user_{Guid.NewGuid():N}@test.com",
-            Password = "Test123!@#"
-        };
+      var content = new StringContent(validJson, Encoding.UTF8, contentType);
+      var response = await Client.PostAsync("/api/auth/register", content);
 
-        var response = await Client.PostAsJsonAsync("/api/auth/register", registrationRequest);
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        return new UserInfo
-        {
-            Id = authResponse!.User.Id,
-            Username = authResponse.User.Username,
-            Email = authResponse.User.Email,
-            Role = UserRoles.User.ToString()
-        };
+      // Should reject non-JSON content types for JSON endpoints
+      // Note: ASP.NET Core returns BadRequest instead of UnsupportedMediaType for some invalid content types
+      response.StatusCode.Should().BeOneOf(HttpStatusCode.UnsupportedMediaType, HttpStatusCode.BadRequest);
     }
+
+    await CleanupTestAsync();
+  }
+
+  /// <summary>
+  /// Helper method to create a test user for validation tests
+  /// </summary>
+  private async Task<UserInfo> CreateTestUserAsync()
+  {
+    var registrationRequest = new RegistrationRequest
+    {
+      Username = $"user_{Guid.NewGuid():N}",
+      Email = $"user_{Guid.NewGuid():N}@test.com",
+      Password = "Test123!@#"
+    };
+
+    var response = await Client.PostAsJsonAsync("/api/auth/register", registrationRequest);
+    response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+    var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+    return new UserInfo
+    {
+      Id = authResponse!.User.Id,
+      Username = authResponse.User.Username,
+      Email = authResponse.User.Email,
+      Role = UserRoles.User.ToString()
+    };
+  }
 }

@@ -14,10 +14,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Configure JSON to handle UserRoles enum with both string and integer support
-        options.JsonSerializerOptions.Converters.Add(new UserRolesJsonConverter());
-        // Allow case-insensitive property names
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+      // Configure JSON to handle UserRoles enum with both string and integer support
+      options.JsonSerializerOptions.Converters.Add(new UserRolesJsonConverter());
+      // Allow case-insensitive property names
+      options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 
 // Configure routing options for case-insensitive routes
@@ -59,8 +59,20 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+  options.AddPolicy("AllowAll", policy =>
+  {
+    policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+  });
+});
+
 // Register services
 builder.Services.AddScoped<WebForum.Api.Services.Interfaces.ISecurityService, WebForum.Api.Services.Implementations.SecurityService>();
+builder.Services.AddScoped<WebForum.Api.Services.Interfaces.ISanitizationService, WebForum.Api.Services.Implementations.SanitizationService>();
 builder.Services.AddScoped<WebForum.Api.Services.Interfaces.IAuthService, WebForum.Api.Services.Implementations.AuthService>();
 builder.Services.AddScoped<WebForum.Api.Services.Interfaces.IUserService, WebForum.Api.Services.Implementations.UserService>();
 builder.Services.AddScoped<WebForum.Api.Services.Interfaces.IPostService, WebForum.Api.Services.Implementations.PostService>();
@@ -85,6 +97,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();

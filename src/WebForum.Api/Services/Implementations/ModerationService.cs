@@ -141,6 +141,65 @@ public class ModerationService : IModerationService
   }
 
   /// <summary>
+  /// Remove a specific tag from a post
+  /// </summary>
+  /// <param name="postId">Post ID to remove tag from</param>
+  /// <param name="tagName">Name of the specific tag to remove</param>
+  /// <param name="moderatorId">Moderator user ID performing the action</param>
+  /// <returns>Moderation response with removal details</returns>
+  /// <exception cref="KeyNotFoundException">Thrown when post or tag is not found</exception>
+  /// <exception cref="ArgumentException">Thrown when IDs are invalid</exception>
+  /// <exception cref="UnauthorizedAccessException">Thrown when user is not a moderator</exception>
+  public async Task<ModerationResponse> RemoveSpecificTagFromPostAsync(int postId, string tagName, int moderatorId)
+  {
+    if (postId <= 0)
+      throw new ArgumentException("Post ID must be greater than zero", nameof(postId));
+
+    if (string.IsNullOrWhiteSpace(tagName))
+      throw new ArgumentException("Tag name cannot be null or empty", nameof(tagName));
+
+    if (moderatorId <= 0)
+      throw new ArgumentException("Moderator ID must be greater than zero", nameof(moderatorId));
+
+    // Check if user is a moderator
+    if (!await IsUserModeratorAsync(moderatorId))
+      throw new UnauthorizedAccessException("User is not authorized to perform moderation actions");
+
+    // Check if post exists
+    var postExists = await _context.Posts.AnyAsync(p => p.Id == postId);
+    if (!postExists)
+      throw new KeyNotFoundException($"Post with ID {postId} not found");
+
+    // Find the existing tag with the specific name
+    var existingTag = await _context.PostTags
+        .FirstOrDefaultAsync(pt => pt.PostId == postId && pt.Tag == tagName);
+
+    if (existingTag == null)
+      throw new KeyNotFoundException($"No '{tagName}' tag found for post {postId}");
+
+    // Get moderator information
+    var moderator = await _context.Users
+        .FirstOrDefaultAsync(u => u.Id == moderatorId);
+
+    if (moderator == null)
+      throw new KeyNotFoundException($"Moderator with ID {moderatorId} not found");
+
+    // Remove the specific tag
+    _context.PostTags.Remove(existingTag);
+    await _context.SaveChangesAsync();
+
+    return new ModerationResponse
+    {
+      PostId = postId,
+      Action = "untagged",
+      Tag = tagName,
+      ModeratorId = moderatorId,
+      ModeratorUsername = moderator.Username,
+      ActionTimestamp = DateTimeOffset.UtcNow
+    };
+  }
+
+  /// <summary>
   /// Get all posts that have been tagged as "misleading or false information"
   /// </summary>
   /// <param name="page">Page number for pagination</param>

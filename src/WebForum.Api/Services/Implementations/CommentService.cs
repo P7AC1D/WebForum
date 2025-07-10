@@ -13,10 +13,12 @@ namespace WebForum.Api.Services.Implementations;
 public class CommentService : ICommentService
 {
   private readonly ForumDbContext _context;
+  private readonly ISanitizationService _sanitizationService;
 
-  public CommentService(ForumDbContext context)
+  public CommentService(ForumDbContext context, ISanitizationService sanitizationService)
   {
     _context = context ?? throw new ArgumentNullException(nameof(context));
+    _sanitizationService = sanitizationService ?? throw new ArgumentNullException(nameof(sanitizationService));
   }
 
   /// <summary>
@@ -98,8 +100,14 @@ public class CommentService : ICommentService
     if (authorId <= 0)
       throw new ArgumentException("Author ID must be greater than zero", nameof(authorId));
 
+    // Sanitize input to prevent XSS and injection attacks
+    var sanitizedCreateComment = new CreateCommentRequest
+    {
+      Content = _sanitizationService.SanitizeInput(createComment.Content)
+    };
+
     // Validate the comment data
-    var validationErrors = createComment.Validate();
+    var validationErrors = sanitizedCreateComment.Validate();
     if (validationErrors.Any())
       throw new ArgumentException($"Comment validation failed: {string.Join(", ", validationErrors)}");
 
@@ -114,7 +122,7 @@ public class CommentService : ICommentService
       throw new ArgumentException($"Author with ID {authorId} does not exist", nameof(authorId));
 
     // Convert to Comment domain model first, then to DTO entity
-    var comment = createComment.ToComment(authorId, postId);
+    var comment = sanitizedCreateComment.ToComment(authorId, postId);
     var commentEntity = CommentEntity.FromDomainModel(comment);
 
     // Add to database

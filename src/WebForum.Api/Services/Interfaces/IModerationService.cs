@@ -32,6 +32,18 @@ public interface IModerationService
   Task<ModerationResponse> RemoveTagFromPostAsync(int postId, int moderatorId);
 
   /// <summary>
+  /// Remove a specific tag from a post
+  /// </summary>
+  /// <param name="postId">Post ID to remove tag from</param>
+  /// <param name="tagName">Name of the specific tag to remove</param>
+  /// <param name="moderatorId">Moderator user ID performing the action</param>
+  /// <returns>Moderation response with removal details</returns>
+  /// <exception cref="KeyNotFoundException">Thrown when post or tag is not found</exception>
+  /// <exception cref="ArgumentException">Thrown when IDs are invalid</exception>
+  /// <exception cref="UnauthorizedAccessException">Thrown when user is not a moderator</exception>
+  Task<ModerationResponse> RemoveSpecificTagFromPostAsync(int postId, string tagName, int moderatorId);
+
+  /// <summary>
   /// Get all posts that have been tagged as "misleading or false information"
   /// </summary>
   /// <param name="page">Page number for pagination</param>

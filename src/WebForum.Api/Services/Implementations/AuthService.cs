@@ -162,7 +162,7 @@ public class AuthService : IAuthService
       // For now, we'll validate using the access token to extract user info
       // In a production system, you'd store refresh tokens in the database with expiration
       // and validate the RefreshTokenValue against stored tokens
-      
+
       // Validate and extract user ID from current access token
       int userId;
       try
@@ -177,7 +177,7 @@ public class AuthService : IAuthService
       }
 
       // Basic refresh token validation (in production, validate against stored tokens)
-      if (!string.IsNullOrEmpty(refreshToken.RefreshTokenValue) && 
+      if (!string.IsNullOrEmpty(refreshToken.RefreshTokenValue) &&
           !_securityService.ValidateRefreshToken(refreshToken.RefreshTokenValue))
       {
         _logger.LogWarning("Token refresh failed - invalid refresh token");

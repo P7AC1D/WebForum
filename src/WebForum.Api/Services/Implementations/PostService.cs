@@ -13,10 +13,12 @@ namespace WebForum.Api.Services.Implementations;
 public class PostService : IPostService
 {
   private readonly ForumDbContext _context;
+  private readonly ISanitizationService _sanitizationService;
 
-  public PostService(ForumDbContext context)
+  public PostService(ForumDbContext context, ISanitizationService sanitizationService)
   {
     _context = context ?? throw new ArgumentNullException(nameof(context));
+    _sanitizationService = sanitizationService ?? throw new ArgumentNullException(nameof(sanitizationService));
   }
 
   /// <summary>
@@ -155,8 +157,15 @@ public class PostService : IPostService
     if (authorId <= 0)
       throw new ArgumentException("Author ID must be greater than zero", nameof(authorId));
 
+    // Sanitize input to prevent XSS and injection attacks
+    var sanitizedCreatePost = new CreatePostRequest
+    {
+      Title = _sanitizationService.SanitizeInput(createPost.Title),
+      Content = _sanitizationService.SanitizeInput(createPost.Content)
+    };
+
     // Validate the post data
-    var validationErrors = createPost.Validate();
+    var validationErrors = sanitizedCreatePost.Validate();
     if (validationErrors.Any())
       throw new ArgumentException($"Post validation failed: {string.Join(", ", validationErrors)}");
 
@@ -166,7 +175,7 @@ public class PostService : IPostService
       throw new ArgumentException($"Author with ID {authorId} does not exist", nameof(authorId));
 
     // Convert to Post domain model first, then to DTO entity
-    var post = createPost.ToPost(authorId);
+    var post = sanitizedCreatePost.ToPost(authorId);
     var postEntity = PostEntity.FromDomainModel(post);
 
     // Add to database
