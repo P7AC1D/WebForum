@@ -35,14 +35,14 @@ public class AuthService : IAuthService
   /// </summary>
   public async Task<Models.Response.AuthResponse> RegisterAsync(RegistrationRequest registration)
   {
+    // Validate input first
+    if (registration == null)
+      throw new ArgumentException("Registration data is required");
+
     _logger.LogInformation("Starting user registration for email: {Email}", registration.Email);
 
     try
     {
-      // Validate input
-      if (registration == null)
-        throw new ArgumentException("Registration data is required");
-
       // Check if user already exists by email
       var existingUserByEmail = await _userService.GetUserByEmailAsync(registration.Email);
       if (existingUserByEmail != null)
@@ -95,14 +95,14 @@ public class AuthService : IAuthService
   /// </summary>
   public async Task<Models.Response.AuthResponse> LoginAsync(LoginRequest login)
   {
+    // Validate input first
+    if (login == null)
+      throw new ArgumentException("Login data is required");
+
     _logger.LogInformation("Starting user login for username/email: {Email}", login.Email);
 
     try
     {
-      // Validate input
-      if (login == null)
-        throw new ArgumentException("Login data is required");
-
       // Try to find user by email first, then by username
       User? user = null;
 
