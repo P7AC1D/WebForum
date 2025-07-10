@@ -1,0 +1,566 @@
+{
+	"info": {
+		"_postman_id": "cfee530a-325c-4426-80d6-9c96dc64b114",
+		"name": "WebForum",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40041752"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register User 1",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"warrenr\",\r\n  \"email\": \"warrenr@webforum.com\",\r\n  \"password\": \"password1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register User 2",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"kathyr\",\r\n  \"email\": \"kathyr@webforum.com\",\r\n  \"password\": \"password1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Moderator",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"mod1\",\r\n  \"email\": \"mod1@webforum.com\",\r\n  \"password\": \"password1234\",\r\n  \"role\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login User 1",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"warrenr@webforum.com\",\r\n  \"password\": \"password1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login User 2",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"kathyr@webforum.com\",\r\n  \"password\": \"password1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Moderator",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"mod1@webforum.com\",\r\n  \"password\": \"password1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh User 1",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"AccessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJ3YXJyZW5yIiwiZW1haWwiOiJ3YXJyZW5yQHdlYmZvcnVtLmNvbSIsInJvbGUiOiJVc2VyIiwibmJmIjoxNzUyMTczNDg4LCJleHAiOjE3NTIxNzcwODgsImlhdCI6MTc1MjE3MzQ4OCwianRpIjoiMDY0NTA1N2YtNWQxMi00YWU4LWExNGMtNDg3YzQyNDQ4YTVlIiwiaXNzIjoiV2ViRm9ydW1BcGkiLCJhdWQiOiJXZWJGb3J1bVVzZXJzIn0.44VbJ-JZ6TyiT_Xh6DjKitb8ygn-NBdHMOrhsCgpBAo\",\r\n    \"RefreshToken\": \"YWYaHyppFHGLW33UZnED3kCkxaMIoYF2My5gC5zDd9U3lC7D6W8VI3G9U9AuYuisKuLbdhbRHTWSsalDEpoTJA==\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/auth/refresh",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5043/api/Users/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"Users",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5043/api/Users/1/posts",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"Users",
+								"1",
+								"posts"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Create Post",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJ3YXJyZW5yIiwiZW1haWwiOiJ3YXJyZW5yQHdlYmZvcnVtLmNvbSIsInJvbGUiOiJVc2VyIiwibmJmIjoxNzUyMTczNDg4LCJleHAiOjE3NTIxNzcwODgsImlhdCI6MTc1MjE3MzQ4OCwianRpIjoiMDY0NTA1N2YtNWQxMi00YWU4LWExNGMtNDg3YzQyNDQ4YTVlIiwiaXNzIjoiV2ViRm9ydW1BcGkiLCJhdWQiOiJXZWJGb3J1bVVzZXJzIn0.44VbJ-JZ6TyiT_Xh6DjKitb8ygn-NBdHMOrhsCgpBAo",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Getting Started with Web Forum Development\",\r\n  \"content\": \"Welcome to our web forum! This post covers the basics of creating engaging discussions in our community. We encourage respectful dialogue and sharing of knowledge across various topics. Whether you're here to ask questions, share insights, or connect with like-minded individuals, this platform is designed to foster meaningful conversations. Please remember to follow our community guidelines and be respectful to all members.\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/posts",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Comment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyIiwidW5pcXVlX25hbWUiOiJrYXRoeXIiLCJlbWFpbCI6ImthdGh5ckB3ZWJmb3J1bS5jb20iLCJyb2xlIjoiVXNlciIsIm5iZiI6MTc1MjE3MzQ5NCwiZXhwIjoxNzUyMTc3MDk0LCJpYXQiOjE3NTIxNzM0OTQsImp0aSI6ImE1YzA0MWZkLTUyZjEtNDU0My04ZTM4LThiODY1MDdhN2E2OCIsImlzcyI6IldlYkZvcnVtQXBpIiwiYXVkIjoiV2ViRm9ydW1Vc2VycyJ9.1FxhRfQDKXbTsWSuQU4NUyC8_gaFGNdWnsHvwBXEVHA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"content\": \"Thank you for this comprehensive introduction! As someone new to web forums, I really appreciate the clear guidelines about respectful dialogue. I'm looking forward to participating in meaningful discussions and learning from the community. One question: are there specific topic categories we should use when creating new posts?\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/posts/1/comments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts",
+								"1",
+								"comments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Like Post",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyIiwidW5pcXVlX25hbWUiOiJrYXRoeXIiLCJlbWFpbCI6ImthdGh5ckB3ZWJmb3J1bS5jb20iLCJyb2xlIjoiVXNlciIsIm5iZiI6MTc1MjE3MzQ5NCwiZXhwIjoxNzUyMTc3MDk0LCJpYXQiOjE3NTIxNzM0OTQsImp0aSI6ImE1YzA0MWZkLTUyZjEtNDU0My04ZTM4LThiODY1MDdhN2E2OCIsImlzcyI6IldlYkZvcnVtQXBpIiwiYXVkIjoiV2ViRm9ydW1Vc2VycyJ9.1FxhRfQDKXbTsWSuQU4NUyC8_gaFGNdWnsHvwBXEVHA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5043/api/Posts/1/like",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"Posts",
+								"1",
+								"like"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5043/api/posts/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5043/api/posts",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Post Comments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5043/api/posts/13/comments",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts",
+								"13",
+								"comments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tag Post",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzIiwidW5pcXVlX25hbWUiOiJtb2QxIiwiZW1haWwiOiJtb2QxQHdlYmZvcnVtLmNvbSIsInJvbGUiOiJNb2RlcmF0b3IiLCJuYmYiOjE3NTIxNzM1MDMsImV4cCI6MTc1MjE3NzEwMywiaWF0IjoxNzUyMTczNTAzLCJqdGkiOiI0ZGZmODk1Ni02YTQ2LTRkYzAtODFkOC1lMDMxZTRiYjAzMTUiLCJpc3MiOiJXZWJGb3J1bUFwaSIsImF1ZCI6IldlYkZvcnVtVXNlcnMifQ.MuAj8CYn3oPV5sPRQ3OlCpUVIYuA7RpFN7wizD1_jzQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/posts/1/tags",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts",
+								"1",
+								"tags"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Post Tag",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzIiwidW5pcXVlX25hbWUiOiJtb2QxIiwiZW1haWwiOiJtb2QxQHdlYmZvcnVtLmNvbSIsInJvbGUiOiJNb2RlcmF0b3IiLCJuYmYiOjE3NTIxNzQ2MjIsImV4cCI6MTc1MjE3ODIyMiwiaWF0IjoxNzUyMTc0NjIyLCJqdGkiOiI0ZmU1Nzg1ZC1iOTBkLTQ5YWEtOWRlOC1iYTIwZDFjYjk2NjIiLCJpc3MiOiJXZWJGb3J1bUFwaSIsImF1ZCI6IldlYkZvcnVtVXNlcnMifQ.iLASm_GuldX2IlJqe4EfFuRyxudwTjQk3gX9wiS6BSw",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5043/api/posts/1/tags",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts",
+								"1",
+								"tags"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tagged Posts",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIzIiwidW5pcXVlX25hbWUiOiJtb2QxIiwiZW1haWwiOiJtb2QxQHdlYmZvcnVtLmNvbSIsInJvbGUiOiJNb2RlcmF0b3IiLCJuYmYiOjE3NTIxNzM1MDMsImV4cCI6MTc1MjE3NzEwMywiaWF0IjoxNzUyMTczNTAzLCJqdGkiOiI0ZGZmODk1Ni02YTQ2LTRkYzAtODFkOC1lMDMxZTRiYjAzMTUiLCJpc3MiOiJXZWJGb3J1bUFwaSIsImF1ZCI6IldlYkZvcnVtVXNlcnMifQ.MuAj8CYn3oPV5sPRQ3OlCpUVIYuA7RpFN7wizD1_jzQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5043/api/posts/tagged",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5043",
+							"path": [
+								"api",
+								"posts",
+								"tagged"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
