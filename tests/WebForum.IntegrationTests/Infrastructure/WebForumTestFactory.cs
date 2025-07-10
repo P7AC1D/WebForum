@@ -282,8 +282,6 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
         if (tableExists)
         {
-          // Add small delay to ensure migration is fully committed in CI environment
-          await Task.Delay(100);
           return;
         }
       }
@@ -314,37 +312,18 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     try
     {
       // Delete data in reverse order to respect foreign key constraints
-      // Add small delays between operations to prevent race conditions in CI
       await TruncateTableIfExistsAsync(context, "PostTags");
-      await Task.Delay(50);
-
       await TruncateTableIfExistsAsync(context, "Likes");
-      await Task.Delay(50);
-
       await TruncateTableIfExistsAsync(context, "Comments");
-      await Task.Delay(50);
-
       await TruncateTableIfExistsAsync(context, "Posts");
-      await Task.Delay(50);
-
       await TruncateTableIfExistsAsync(context, "Users");
-      await Task.Delay(50);
 
       // Reset sequences - only if they exist
       await ResetSequenceIfExistsAsync(context, "Users_Id_seq");
-      await Task.Delay(25);
-
       await ResetSequenceIfExistsAsync(context, "Posts_Id_seq");
-      await Task.Delay(25);
-
       await ResetSequenceIfExistsAsync(context, "Comments_Id_seq");
-      await Task.Delay(25);
-
       await ResetSequenceIfExistsAsync(context, "Likes_Id_seq");
-      await Task.Delay(25);
-
       await ResetSequenceIfExistsAsync(context, "PostTags_Id_seq");
-      await Task.Delay(25);
     }
     catch (Exception)
     {
