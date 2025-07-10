@@ -194,12 +194,12 @@ function Show-Help {
   Write-Host "  -Posts [count]    - Number of posts to create (default: 25)" -ForegroundColor Gray
   Write-Host "  -Comments [count] - Number of comments to create (default: 50)" -ForegroundColor Gray
   Write-Host "  -Likes [count]    - Number of likes to create (default: 75)" -ForegroundColor Gray
-  Write-Host "  -Force            - Overwrite existing data" -ForegroundColor Gray
+  Write-Host "  --force           - Overwrite existing data" -ForegroundColor Gray
   Write-Host ""
   Write-Host "Examples:" -ForegroundColor White
   Write-Host "  .\db.ps1 seed                              - Seed with default amounts" -ForegroundColor Gray
   Write-Host "  .\db.ps1 seed -Users 20 -Posts 50         - Seed with custom amounts" -ForegroundColor Gray
-  Write-Host "  .\db.ps1 seed -Force                       - Overwrite existing data" -ForegroundColor Gray
+  Write-Host "  .\db.ps1 seed --force                      - Overwrite existing data" -ForegroundColor Gray
 }
 
 # Parse additional parameters for seed command
@@ -232,7 +232,7 @@ for ($i = 1; $i -lt $args.Count; $i++) {
         $SeedLikes = [int]$args[++$i] 
       }
     }
-    "-Force" { 
+    "--force" { 
       $Force = $true 
     }
   }
