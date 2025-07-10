@@ -22,6 +22,12 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    - name: Setup Docker for test containers
+      run: |
+        # Ensure Docker is running and accessible
+        docker --version
+        docker info
+
     - name: Cache NuGet packages
       uses: actions/cache@v4
       with:

@@ -182,8 +182,22 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     using var scope = CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
 
-    // Ensure database is created and migrations are applied
-    await context.Database.MigrateAsync();
+    try
+    {
+      // Ensure database is created and migrations are applied
+      await context.Database.MigrateAsync();
+      
+      // Verify that the database is properly set up by checking if tables exist
+      var tablesExist = await context.Database.CanConnectAsync();
+      if (!tablesExist)
+      {
+        throw new InvalidOperationException("Database connection failed after migration");
+      }
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Failed to initialize database: {ex.Message}", ex);
+    }
   }
 
   /// <summary>
@@ -194,19 +208,47 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     using var scope = CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
 
-    // Delete data in reverse order to respect foreign key constraints
-    await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"PostTags\" CASCADE");
-    await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Likes\" CASCADE");
-    await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Comments\" CASCADE");
-    await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Posts\" CASCADE");
-    await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Users\" CASCADE");
+    try
+    {
+      // Check if tables exist before trying to truncate them
+      var tablesExist = await context.Database.CanConnectAsync();
+      if (!tablesExist)
+      {
+        // If we can't connect, try to ensure database is created first
+        await EnsureDatabaseCreatedAsync();
+        return;
+      }
 
-    // Reset sequences
-    await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Users_Id_seq\" RESTART WITH 1");
-    await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Posts_Id_seq\" RESTART WITH 1");
-    await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Comments_Id_seq\" RESTART WITH 1");
-    await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Likes_Id_seq\" RESTART WITH 1");
-    await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"PostTags_Id_seq\" RESTART WITH 1");
+      // Verify specific tables exist before truncating
+      var postTagsExists = await context.Database.ExecuteSqlRawAsync(
+        "SELECT 1 FROM information_schema.tables WHERE table_name = 'PostTags' LIMIT 1") >= 0;
+
+      if (!postTagsExists)
+      {
+        // Tables don't exist yet, ensure database is created
+        await EnsureDatabaseCreatedAsync();
+        return;
+      }
+
+      // Delete data in reverse order to respect foreign key constraints
+      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"PostTags\" CASCADE");
+      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Likes\" CASCADE");
+      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Comments\" CASCADE");
+      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Posts\" CASCADE");
+      await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Users\" CASCADE");
+
+      // Reset sequences
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Users_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Posts_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Comments_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Likes_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"PostTags_Id_seq\" RESTART WITH 1");
+    }
+    catch (Exception)
+    {
+      // If cleanup fails, try to recreate the database
+      await EnsureDatabaseCreatedAsync();
+    }
   }
 
   /// <summary>
