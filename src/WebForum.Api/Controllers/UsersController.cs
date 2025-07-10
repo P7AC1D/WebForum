@@ -44,7 +44,7 @@ public class UsersController : ControllerBase
       if (id <= 0)
       {
         _logger.LogWarning("Invalid user ID provided: {UserId}", id);
-        return BadRequest("User ID must be greater than zero");
+        return NotFound($"User with ID {id} not found");
       }
 
       var userProfile = await _userService.GetUserProfileAsync(id);
@@ -100,7 +100,7 @@ public class UsersController : ControllerBase
       if (id <= 0)
       {
         _logger.LogWarning("Invalid user ID provided: {UserId}", id);
-        return BadRequest("User ID must be greater than zero");
+        return NotFound($"User with ID {id} not found");
       }
 
       // Validate pagination parameters

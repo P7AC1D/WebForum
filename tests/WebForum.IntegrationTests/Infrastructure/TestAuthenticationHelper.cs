@@ -34,9 +34,26 @@ public static class TestAuthenticationHelper
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(TestSecretKey);
 
+        // Handle expired tokens properly by adjusting both NotBefore and Expires
+        DateTime tokenCreationTime;
+        DateTime tokenExpiryTime;
+        
+        if (expirationMinutes < 0)
+        {
+            // For expired tokens, create a token that was valid in the past
+            tokenExpiryTime = DateTime.UtcNow.AddMinutes(expirationMinutes); // Already expired
+            tokenCreationTime = tokenExpiryTime.AddMinutes(-60); // Was valid for 60 minutes in the past
+        }
+        else
+        {
+            // For valid tokens, use normal flow
+            tokenCreationTime = DateTime.UtcNow;
+            tokenExpiryTime = DateTime.UtcNow.AddMinutes(expirationMinutes);
+        }
+
         // Use Unix timestamp for higher precision and uniqueness (matching SecurityService)
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var expiry = DateTimeOffset.UtcNow.AddMinutes(expirationMinutes).ToUnixTimeSeconds();
+        var creationTimeUnix = ((DateTimeOffset)tokenCreationTime).ToUnixTimeSeconds();
+        var expiryTimeUnix = ((DateTimeOffset)tokenExpiryTime).ToUnixTimeSeconds();
 
         var claims = new List<Claim>
         {
@@ -44,17 +61,17 @@ public static class TestAuthenticationHelper
             new(ClaimTypes.Name, username),
             new(ClaimTypes.Email, email),
             new(ClaimTypes.Role, roles.ToString()),
-            new(JwtRegisteredClaimNames.Nbf, now.ToString(), ClaimValueTypes.Integer64),
-            new(JwtRegisteredClaimNames.Exp, expiry.ToString(), ClaimValueTypes.Integer64),
-            new(JwtRegisteredClaimNames.Iat, now.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Nbf, creationTimeUnix.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Exp, expiryTimeUnix.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Iat, creationTimeUnix.ToString(), ClaimValueTypes.Integer64),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            NotBefore = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),
+            NotBefore = tokenCreationTime,
+            Expires = tokenExpiryTime,
             Issuer = TestIssuer,
             Audience = TestAudience,
             SigningCredentials = new SigningCredentials(

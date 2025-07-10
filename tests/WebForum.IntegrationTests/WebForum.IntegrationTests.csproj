@@ -32,4 +32,8 @@
     <ProjectReference Include="..\..\src\WebForum.Api\WebForum.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Debug\" />
+  </ItemGroup>
+
 </Project>
