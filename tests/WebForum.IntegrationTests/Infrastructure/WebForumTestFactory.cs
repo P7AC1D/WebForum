@@ -23,20 +23,37 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 {
   private PostgreSqlContainer? _dbContainer;
   private DbConnection? _dbConnection;
+  private readonly bool _useTestcontainers;
+
+  public WebForumTestFactory()
+  {
+    // Use Testcontainers in CI environments, local connection otherwise
+    _useTestcontainers = Environment.GetEnvironmentVariable("CI") == "true" || 
+                        Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true" ||
+                        Environment.GetEnvironmentVariable("USE_TESTCONTAINERS") == "true";
+  }
 
   /// <summary>
-  /// Gets the database connection string for the test container
+  /// Gets the database connection string for the test container or local database
   /// </summary>
   public string ConnectionString
   {
     get
     {
-      if (_dbContainer == null)
-        throw new InvalidOperationException("Database container not initialized");
+      if (_useTestcontainers)
+      {
+        if (_dbContainer == null)
+          throw new InvalidOperationException("Database container not initialized");
 
-      // Use the built-in connection string from PostgreSqlContainer
-      // This handles networking properly across different environments
-      return _dbContainer.GetConnectionString();
+        // Use the built-in connection string from PostgreSqlContainer
+        // This handles networking properly across different environments
+        return _dbContainer.GetConnectionString();
+      }
+      else
+      {
+        // Use local database connection string for development
+        return "Host=localhost;Port=5432;Database=webforum;Username=postgres;Password=password";
+      }
     }
   }
 
@@ -64,19 +81,22 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
   /// </summary>
   public async Task InitializeAsync()
   {
-    // Build and start PostgreSQL container using the specialized PostgreSqlContainer
-    _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:15-alpine")
-        .WithDatabase("webforum_test")
-        .WithUsername("postgres")
-        .WithPassword("test_password")
-        .WithCleanUp(true)
-        .Build();
+    if (_useTestcontainers)
+    {
+      // Build and start PostgreSQL container for CI environments
+      _dbContainer = new PostgreSqlBuilder()
+          .WithImage("postgres:15-alpine")
+          .WithDatabase("webforum_test")
+          .WithUsername("postgres")
+          .WithPassword("test_password")
+          .WithCleanUp(true)
+          .Build();
 
-    await _dbContainer.StartAsync();
+      await _dbContainer.StartAsync();
+    }
 
-    // Test connection with retry logic and database readiness
-    var maxRetries = 30;
+    // Test connection with retry logic for both environments
+    var maxRetries = _useTestcontainers ? 30 : 10; // More retries for container startup
     var delay = TimeSpan.FromMilliseconds(500);
     Exception? lastException = null;
 
@@ -120,7 +140,7 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     if (_dbConnection?.State != System.Data.ConnectionState.Open)
     {
-      var errorMessage = $"Failed to connect to PostgreSQL container after {maxRetries} retries. " +
+      var errorMessage = $"Failed to connect to {(_useTestcontainers ? "PostgreSQL container" : "local PostgreSQL database")} after {maxRetries} retries. " +
                         $"Connection string: {ConnectionString}. " +
                         $"Last error: {lastException?.Message}";
       throw new InvalidOperationException(errorMessage, lastException);
@@ -398,7 +418,7 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     _dbConnection?.Close();
     _dbConnection?.Dispose();
 
-    if (_dbContainer != null)
+    if (_useTestcontainers && _dbContainer != null)
     {
       await _dbContainer.StopAsync();
       await _dbContainer.DisposeAsync();

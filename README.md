@@ -201,6 +201,75 @@ dotnet test tests/WebForum.UnitTests/
 dotnet test tests/WebForum.IntegrationTests/
 ```
 
+### Integration Tests Setup
+
+The integration tests require a PostgreSQL database and are designed to work seamlessly in both local development and CI environments.
+
+#### Local Development
+
+For local development, integration tests use your existing Docker Compose database:
+
+1. **Start the local database**:
+   ```powershell
+   # Windows
+   .\db.ps1 start
+   
+   # Linux/macOS  
+   ./db.sh start
+   ```
+
+2. **Run integration tests**:
+   ```bash
+   dotnet test tests/WebForum.IntegrationTests/
+   ```
+
+The integration tests will automatically:
+- ✅ Connect to your local PostgreSQL instance (`localhost:5432`)
+- ✅ Create database schema using EF Core migrations or `EnsureCreated()`
+- ✅ Run tests against the local database
+- ✅ Clean up data between tests (preserving schema)
+
+#### CI Environment
+
+In CI (GitHub Actions), integration tests automatically:
+- ✅ Start a fresh PostgreSQL container using Testcontainers
+- ✅ Create isolated database instances for each test run
+- ✅ Generate migrations if missing (via `dotnet ef migrations add`)
+- ✅ Apply migrations and run tests
+- ✅ Clean up containers automatically
+
+#### Environment Detection
+
+The test factory automatically detects the environment:
+
+| Environment | Database Setup | Detection Method |
+|-------------|---------------|------------------|
+| **Local Development** | Uses existing Docker Compose PostgreSQL | Default behavior |
+| **CI/GitHub Actions** | Uses Testcontainers with fresh PostgreSQL | `CI=true` or `GITHUB_ACTIONS=true` |
+| **Force Testcontainers** | Uses Testcontainers locally | Set `USE_TESTCONTAINERS=true` |
+
+#### Troubleshooting Integration Tests
+
+**Local tests failing?**
+1. Ensure PostgreSQL is running: `.\db.ps1 status`
+2. Check database connectivity: `.\db.ps1 connect`
+3. Verify migrations are applied: `.\db.ps1 migrate`
+
+**Need fresh database?**
+```powershell
+.\db.ps1 reset  # ⚠️ Deletes all data and migrations
+.\db.ps1 start  # Recreates with fresh schema
+```
+
+**Force Testcontainers locally** (for testing CI behavior):
+```bash
+$env:USE_TESTCONTAINERS="true"  # PowerShell
+# or
+export USE_TESTCONTAINERS=true  # Bash
+
+dotnet test tests/WebForum.IntegrationTests/
+```
+
 ### Entity Framework Migrations
 
 The project includes automatic migration management. When you run `.\db.ps1 migrate` or `.\db.ps1 start`, the scripts will:
