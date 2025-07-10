@@ -36,6 +36,20 @@ jobs:
     - name: Build solution
       run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
 
+    - name: Install EF Core tools
+      run: dotnet tool install --global dotnet-ef
+
+    - name: Generate migrations if missing
+      run: |
+        cd src/WebForum.Api
+        if [ ! -d "Migrations" ] || [ -z "$(find Migrations -name '*.cs' 2>/dev/null)" ]; then
+          echo "No migrations found. Creating initial migration..."
+          dotnet ef migrations add InitialCreate
+          echo "Initial migration created successfully!"
+        else
+          echo "Migrations already exist."
+        fi
+
     - name: Run unit tests
       run: |
         dotnet test tests/WebForum.UnitTests/WebForum.UnitTests.csproj \
