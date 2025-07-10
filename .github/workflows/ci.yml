@@ -1,0 +1,51 @@
+name: CI Pipeline
+
+on:
+  push:
+  pull_request:
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  SOLUTION_FILE: 'WebForum.sln'
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+    - name: Build solution
+      run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
+
+    - name: Run unit tests
+      run: |
+        dotnet test tests/WebForum.UnitTests/WebForum.UnitTests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal
+
+    - name: Run integration tests
+      run: |
+        dotnet test tests/WebForum.IntegrationTests/WebForum.IntegrationTests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal
