@@ -184,6 +184,9 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     // Ensure database is created and migrations are applied
     await context.Database.MigrateAsync();
+    
+    // Add delay to ensure migration is fully committed in CI environment
+    await Task.Delay(100);
   }
 
   /// <summary>
@@ -195,18 +198,37 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     var context = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
 
     // Delete data in reverse order to respect foreign key constraints
+    // Add small delays between operations to prevent race conditions in CI
     await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"PostTags\" CASCADE");
+    await Task.Delay(50);
+    
     await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Likes\" CASCADE");
+    await Task.Delay(50);
+    
     await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Comments\" CASCADE");
+    await Task.Delay(50);
+    
     await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Posts\" CASCADE");
+    await Task.Delay(50);
+    
     await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Users\" CASCADE");
+    await Task.Delay(50);
 
     // Reset sequences
     await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Users_Id_seq\" RESTART WITH 1");
+    await Task.Delay(25);
+    
     await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Posts_Id_seq\" RESTART WITH 1");
+    await Task.Delay(25);
+    
     await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Comments_Id_seq\" RESTART WITH 1");
+    await Task.Delay(25);
+    
     await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Likes_Id_seq\" RESTART WITH 1");
+    await Task.Delay(25);
+    
     await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"PostTags_Id_seq\" RESTART WITH 1");
+    await Task.Delay(25);
   }
 
   /// <summary>

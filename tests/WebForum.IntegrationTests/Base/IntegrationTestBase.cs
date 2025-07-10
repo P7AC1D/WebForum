@@ -23,6 +23,10 @@ public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>
   protected async Task InitializeTestAsync()
   {
     await Factory.EnsureDatabaseCreatedAsync();
+    
+    // Add delay between migration and cleanup to ensure proper sequencing in CI
+    await Task.Delay(100);
+    
     await Factory.CleanDatabaseAsync();
   }
 
