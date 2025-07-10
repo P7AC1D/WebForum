@@ -1,4 +1,5 @@
 using WebForum.Api.Models;
+using WebForum.Api.Models.Response;
 
 namespace WebForum.Api.Services.Interfaces;
 

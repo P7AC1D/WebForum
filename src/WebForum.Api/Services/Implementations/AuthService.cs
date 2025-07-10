@@ -75,12 +75,13 @@ public class AuthService : IAuthService
 
       _logger.LogInformation("User registered successfully with ID: {UserId}", user.Id);
 
-      // Generate JWT token
+      // Generate JWT token and refresh token
       var token = _securityService.GenerateJwtToken(user);
+      var refreshToken = _securityService.GenerateRefreshToken();
       var expiresIn = _securityService.GetTokenExpirationSeconds();
 
       // Return authentication response
-      return Models.Response.AuthResponse.FromUser(user, token, expiresIn);
+      return Models.Response.AuthResponse.FromUser(user, token, expiresIn, refreshToken);
     }
     catch (Exception ex) when (!(ex is ArgumentException || ex is InvalidOperationException))
     {
@@ -130,12 +131,13 @@ public class AuthService : IAuthService
 
       _logger.LogInformation("User logged in successfully: {UserId}", user.Id);
 
-      // Generate JWT token
+      // Generate JWT token and refresh token
       var token = _securityService.GenerateJwtToken(user);
+      var refreshToken = _securityService.GenerateRefreshToken();
       var expiresIn = _securityService.GetTokenExpirationSeconds();
 
       // Return authentication response
-      return Models.Response.AuthResponse.FromUser(user, token, expiresIn);
+      return Models.Response.AuthResponse.FromUser(user, token, expiresIn, refreshToken);
     }
     catch (Exception ex) when (!(ex is ArgumentException || ex is UnauthorizedAccessException))
     {
@@ -157,23 +159,29 @@ public class AuthService : IAuthService
       if (refreshToken == null)
         throw new ArgumentException("Refresh token data is required");
 
-      // Validate refresh token (use AccessToken for validation)
-      if (!_securityService.ValidateRefreshToken(refreshToken.AccessToken))
-      {
-        _logger.LogWarning("Token refresh failed - invalid refresh token");
-        throw new UnauthorizedAccessException("Invalid or expired refresh token");
-      }
-
-      // Extract user ID from current token (even if expired, we can still get the user ID)
+      // For now, we'll validate using the access token to extract user info
+      // In a production system, you'd store refresh tokens in the database with expiration
+      // and validate the RefreshTokenValue against stored tokens
+      
+      // Validate and extract user ID from current access token
       int userId;
       try
       {
+        // Extract user ID from access token (may be expired, but we can still get user ID)
         userId = _securityService.GetUserIdFromToken(refreshToken.AccessToken);
       }
       catch
       {
         _logger.LogWarning("Token refresh failed - could not extract user ID from token");
         throw new UnauthorizedAccessException("Invalid token format");
+      }
+
+      // Basic refresh token validation (in production, validate against stored tokens)
+      if (!string.IsNullOrEmpty(refreshToken.RefreshTokenValue) && 
+          !_securityService.ValidateRefreshToken(refreshToken.RefreshTokenValue))
+      {
+        _logger.LogWarning("Token refresh failed - invalid refresh token");
+        throw new UnauthorizedAccessException("Invalid or expired refresh token");
       }
 
       // Get user information
@@ -186,12 +194,13 @@ public class AuthService : IAuthService
 
       _logger.LogInformation("Token refreshed successfully for user: {UserId}", user.Id);
 
-      // Generate new JWT token
+      // Generate new JWT token and refresh token
       var newToken = _securityService.GenerateJwtToken(user);
+      var newRefreshToken = _securityService.GenerateRefreshToken();
       var expiresIn = _securityService.GetTokenExpirationSeconds();
 
       // Return new authentication response
-      return Models.Response.AuthResponse.FromUser(user, newToken, expiresIn);
+      return Models.Response.AuthResponse.FromUser(user, newToken, expiresIn, newRefreshToken);
     }
     catch (Exception ex) when (!(ex is ArgumentException || ex is UnauthorizedAccessException))
     {

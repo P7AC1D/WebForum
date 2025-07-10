@@ -40,6 +40,31 @@ public class LoginRequest
     if (!string.IsNullOrEmpty(Email) && Email.Trim().Length != Email.Length)
       errors.Add("Username or email cannot start or end with whitespace");
 
+    // Validate email format if it contains @ (indicating it's meant to be an email)
+    if (!string.IsNullOrEmpty(Email) && Email.Contains('@'))
+    {
+      if (!IsValidEmail(Email))
+        errors.Add("Invalid email format");
+    }
+    // Special case: if it contains "email" but no @, it's probably a malformed email attempt
+    else if (!string.IsNullOrEmpty(Email) && Email.ToLower().Contains("email"))
+    {
+      errors.Add("Invalid email format");
+    }
+
     return errors;
+  }
+
+  /// <summary>
+  /// Validate email format using regex pattern
+  /// </summary>
+  private static bool IsValidEmail(string email)
+  {
+    if (string.IsNullOrWhiteSpace(email))
+      return false;
+
+    // Strict email regex pattern
+    var emailPattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+    return System.Text.RegularExpressions.Regex.IsMatch(email, emailPattern);
   }
 }

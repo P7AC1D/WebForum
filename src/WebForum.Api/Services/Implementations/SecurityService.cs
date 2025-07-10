@@ -47,17 +47,26 @@ public class SecurityService : ISecurityService
     var tokenHandler = new JwtSecurityTokenHandler();
     var key = Encoding.ASCII.GetBytes(_secretKey);
 
+    // Use Unix timestamp for higher precision and uniqueness
+    var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    var expiry = DateTimeOffset.UtcNow.AddMinutes(_expirationMinutes).ToUnixTimeSeconds();
+
     var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
             new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Role, user.Role.ToString()),
+            new(JwtRegisteredClaimNames.Nbf, now.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Exp, expiry.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Iat, now.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
     var tokenDescriptor = new SecurityTokenDescriptor
     {
       Subject = new ClaimsIdentity(claims),
+      NotBefore = DateTime.UtcNow,
       Expires = DateTime.UtcNow.AddMinutes(_expirationMinutes),
       Issuer = _issuer,
       Audience = _audience,

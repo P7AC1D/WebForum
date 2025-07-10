@@ -52,6 +52,11 @@ public class AuthController(IAuthService authService, ILogger<AuthController> lo
       _logger.LogInformation("User registered successfully with ID: {UserId}", result.User.Id);
       return Created($"/api/users/{result.User.Id}", result);
     }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+    {
+      _logger.LogWarning("Registration failed: {Message}", ex.Message);
+      return Conflict(ex.Message);
+    }
     catch (InvalidOperationException ex)
     {
       _logger.LogWarning("Registration failed: {Message}", ex.Message);

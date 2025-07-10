@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WebForum.Api.Data;
 using WebForum.Api.Data.DTOs;
 using WebForum.Api.Models;
+using WebForum.Api.Models.Response;
 using WebForum.Api.Services.Interfaces;
 
 namespace WebForum.Api.Services.Implementations;
