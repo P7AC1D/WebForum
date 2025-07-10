@@ -204,17 +204,9 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     try
     {
-      // First check if the database schema exists by querying information_schema
-      var tablesExistQuery = context.Database.SqlQueryRaw<bool>(
-        "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Users' AND table_schema = 'public')");
-      var tablesExist = await tablesExistQuery.FirstOrDefaultAsync();
+      // Simple approach: just delete all data in the correct order
+      // This avoids the complex table existence checks that were causing issues
       
-      if (!tablesExist)
-      {
-        // Schema doesn't exist yet, ensure it's created first
-        await EnsureDatabaseCreatedAsync();
-      }
-
       // Delete data in reverse order to respect foreign key constraints
       await context.Database.ExecuteSqlRawAsync("DELETE FROM \"PostTags\"");
       await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Likes\"");
@@ -229,9 +221,23 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Likes_Id_seq\" RESTART WITH 1");
       await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"PostTags_Id_seq\" RESTART WITH 1");
     }
-    catch (Exception ex)
+    catch (Exception)
     {
-      throw new InvalidOperationException($"Failed to clean database: {ex.Message}", ex);
+      // If cleanup fails, try to ensure database is created first
+      await EnsureDatabaseCreatedAsync();
+      
+      // Try cleanup again
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"PostTags\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Likes\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Comments\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Posts\"");
+      await context.Database.ExecuteSqlRawAsync("DELETE FROM \"Users\"");
+
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Users_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Posts_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Comments_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"Likes_Id_seq\" RESTART WITH 1");
+      await context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE \"PostTags_Id_seq\" RESTART WITH 1");
     }
   }
 

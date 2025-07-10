@@ -14,7 +14,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
   protected HttpClient Client { get; private set; } = null!;
 
   /// <summary>
-  /// Initialize before each test - create fresh factory and ensure database is ready
+  /// Initialize before each test - create fresh factory and clean database
   /// </summary>
   public async Task InitializeAsync()
   {
@@ -22,8 +22,9 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     await Factory.InitializeAsync();
     Client = Factory.CreateClient();
     
-    // Ensure database is ready - no need to clean since we're creating a fresh database
+    // Ensure database is ready
     await Factory.EnsureDatabaseCreatedAsync();
+    await Factory.CleanDatabaseAsync();
   }
 
   /// <summary>
