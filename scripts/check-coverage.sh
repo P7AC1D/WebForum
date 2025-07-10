@@ -62,13 +62,54 @@ fi
 if [ "$PASS" = true ]; then
     echo -e "${GREEN}✅ All coverage thresholds met!${NC}"
     echo ""
-    echo -e "${YELLOW}🛡️ Security Services Priority Check:${NC}"
-    echo "Verify that Tier 1 services (SecurityService, AuthService, SanitizationService) have high coverage"
+    echo -e "${YELLOW}🛡️ Key Services Coverage Analysis:${NC}"
+    
+    # Display Tier 1 Security Services Coverage
+    echo ""
+    echo -e "${CYAN}🔒 Tier 1 - Security Services:${NC}"
+    jq -r '.coverage.assemblies[].classesinassembly[]? | select(.name? and (.name | test("SecurityService|AuthService|SanitizationService"))) | [(.name | split(".") | last), .coverage, .branchcoverage] | @tsv' "$COVERAGE_FILE" 2>/dev/null | \
+    while IFS=$'\t' read -r name line_cov branch_cov; do
+        if (( $(echo "$line_cov >= 95" | bc -l) )); then
+            echo "🟢 $name: ${line_cov}% line, ${branch_cov}% branch"
+        elif (( $(echo "$line_cov >= 90" | bc -l) )); then
+            echo "🟡 $name: ${line_cov}% line, ${branch_cov}% branch"
+        else
+            echo "🔴 $name: ${line_cov}% line, ${branch_cov}% branch"
+        fi
+    done
+    
+    # Display Tier 2 Business Services Coverage
+    echo ""
+    echo -e "${CYAN}💼 Tier 2 - Business Services:${NC}"
+    jq -r '.coverage.assemblies[].classesinassembly[]? | select(.name? and (.name | test("PostService|UserService|ModerationService"))) | [(.name | split(".") | last), .coverage, .branchcoverage] | @tsv' "$COVERAGE_FILE" 2>/dev/null | \
+    while IFS=$'\t' read -r name line_cov branch_cov; do
+        if (( $(echo "$line_cov >= 95" | bc -l) )); then
+            echo "🟢 $name: ${line_cov}% line, ${branch_cov}% branch"
+        elif (( $(echo "$line_cov >= 90" | bc -l) )); then
+            echo "🟡 $name: ${line_cov}% line, ${branch_cov}% branch"
+        else
+            echo "🔴 $name: ${line_cov}% line, ${branch_cov}% branch"
+        fi
+    done
+    
+    # Display Tier 3 Support Services Coverage
+    echo ""
+    echo -e "${CYAN}🛠️ Tier 3 - Support Services:${NC}"
+    jq -r '.coverage.assemblies[].classesinassembly[]? | select(.name? and (.name | test("LikeService|CommentService"))) | [(.name | split(".") | last), .coverage, .branchcoverage] | @tsv' "$COVERAGE_FILE" 2>/dev/null | \
+    while IFS=$'\t' read -r name line_cov branch_cov; do
+        if (( $(echo "$line_cov >= 85" | bc -l) )); then
+            echo "🟢 $name: ${line_cov}% line, ${branch_cov}% branch"
+        elif (( $(echo "$line_cov >= 80" | bc -l) )); then
+            echo "🟡 $name: ${line_cov}% line, ${branch_cov}% branch"
+        else
+            echo "🔴 $name: ${line_cov}% line, ${branch_cov}% branch"
+        fi
+    done
     
     # Display top covered classes if coverage data exists
     echo ""
     echo -e "${CYAN}🎯 Top Coverage by Class:${NC}"
-    jq -r '.coverage[]? | select(.name? and .linecoverage?) | [.name, .linecoverage] | @tsv' "$COVERAGE_FILE" 2>/dev/null | \
+    jq -r '.coverage.assemblies[].classesinassembly[]? | select(.name? and .coverage?) | [(.name | split(".") | last), .coverage] | @tsv' "$COVERAGE_FILE" 2>/dev/null | \
     sort -k2 -nr | head -5 | while IFS=$'\t' read -r name coverage; do
         if (( $(echo "$coverage >= 90" | bc -l) )); then
             echo "🟢 $name: ${coverage}%"
@@ -89,7 +130,7 @@ else
     echo "4. Consider property-based testing for complex logic"
     echo ""
     echo -e "${YELLOW}🔍 Classes needing attention:${NC}"
-    jq -r '.coverage[]? | select(.name? and .linecoverage? and (.linecoverage < 80)) | [.name, .linecoverage] | @tsv' "$COVERAGE_FILE" 2>/dev/null | \
+    jq -r '.coverage.assemblies[].classesinassembly[]? | select(.name? and .coverage? and (.coverage < 80)) | [(.name | split(".") | last), .coverage] | @tsv' "$COVERAGE_FILE" 2>/dev/null | \
     sort -k2 -n | while IFS=$'\t' read -r name coverage; do
         echo -e "${RED}📉 $name: ${coverage}%${NC}"
     done

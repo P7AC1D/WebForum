@@ -113,21 +113,37 @@ jobs:
           echo "| Service | Line Coverage | Branch Coverage |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|---------------|-----------------|" >> $GITHUB_STEP_SUMMARY
           
-          # Check if coverage array exists and has data
-          HAS_COVERAGE=$(cat coverage-report/Summary.json | jq -r 'has("coverage") and (.coverage | length > 0)')
+          # Check if coverage data exists
+          HAS_COVERAGE=$(cat coverage-report/Summary.json | jq -r 'has("coverage") and (.coverage.assemblies | length > 0)')
           
           if [ "$HAS_COVERAGE" = "true" ]; then
-            # Extract coverage for critical security services safely
+            # Extract coverage for Tier 1 Security Services
+            echo "**Tier 1 - Security Services**" >> $GITHUB_STEP_SUMMARY
             cat coverage-report/Summary.json | jq -r '
-              .coverage[]? | 
-              select(.name? and (.name | test("SecurityService|SanitizationService|AuthService"; "i"))) |
-              "| " + (.name // "Unknown") + " | " + ((.linecoverage // 0) | tostring) + "% | " + ((.branchcoverage // 0) | tostring) + "% |"
+              .coverage.assemblies[].classesinassembly[]? | 
+              select(.name? and (.name | test("SecurityService|AuthService|SanitizationService"))) |
+              "| " + (.name | split(".") | last) + " | " + (.coverage | tostring) + "% | " + ((.branchcoverage // 0) | tostring) + "% |"
             ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
-          fi
-          
-          # Add fallback if no security services found
-          if ! grep -q "SecurityService\|SanitizationService\|AuthService" $GITHUB_STEP_SUMMARY 2>/dev/null; then
-            echo "| Tier 1 Security Services | See detailed report | - |" >> $GITHUB_STEP_SUMMARY
+            
+            # Extract coverage for Tier 2 Business Services
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Tier 2 - Business Services**" >> $GITHUB_STEP_SUMMARY
+            cat coverage-report/Summary.json | jq -r '
+              .coverage.assemblies[].classesinassembly[]? | 
+              select(.name? and (.name | test("PostService|UserService|ModerationService"))) |
+              "| " + (.name | split(".") | last) + " | " + (.coverage | tostring) + "% | " + ((.branchcoverage // 0) | tostring) + "% |"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+            
+            # Extract coverage for Tier 3 Support Services
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Tier 3 - Support Services**" >> $GITHUB_STEP_SUMMARY
+            cat coverage-report/Summary.json | jq -r '
+              .coverage.assemblies[].classesinassembly[]? | 
+              select(.name? and (.name | test("LikeService|CommentService"))) |
+              "| " + (.name | split(".") | last) + " | " + (.coverage | tostring) + "% | " + ((.branchcoverage // 0) | tostring) + "% |"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          else
+            echo "| No coverage data available | - | - |" >> $GITHUB_STEP_SUMMARY
           fi
         else
           echo "⚠️ Coverage report not found. Please check the test execution." >> $GITHUB_STEP_SUMMARY
