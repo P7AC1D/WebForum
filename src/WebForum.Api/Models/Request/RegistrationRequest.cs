@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Text.Json.Serialization;
 using WebForum.Api.Converters;
 using WebForum.Api.Models;
@@ -26,11 +27,10 @@ public class RegistrationRequest
   public string Email { get; set; } = string.Empty;
 
   /// <summary>
-  /// Password for the new account (minimum 6 characters)
+  /// Password for the new account (8+ characters)
   /// </summary>
   [Required(ErrorMessage = "Password is required")]
-  [MinLength(6, ErrorMessage = "Password must be at least 6 characters long")]
-  [StringLength(100, ErrorMessage = "Password must not exceed 100 characters")]
+  [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
   public string Password { get; set; } = string.Empty;
 
   /// <summary>
@@ -63,6 +63,105 @@ public class RegistrationRequest
 
     if (!string.IsNullOrEmpty(Email) && Email.Trim().Length != Email.Length)
       errors.Add("Email cannot start or end with whitespace");
+
+    // Enhanced email validation
+    if (!string.IsNullOrWhiteSpace(Email))
+    {
+      var emailValidationErrors = ValidateEmailFormat(Email);
+      errors.AddRange(emailValidationErrors);
+    }
+
+    // Enhanced password validation
+    if (!string.IsNullOrWhiteSpace(Password))
+    {
+      var passwordValidationErrors = ValidatePasswordComplexity(Password);
+      errors.AddRange(passwordValidationErrors);
+    }
+
+    return errors;
+  }
+
+  /// <summary>
+  /// Validates email format using strict rules
+  /// </summary>
+  /// <param name="email">Email to validate</param>
+  /// <returns>List of email validation errors</returns>
+  private List<string> ValidateEmailFormat(string email)
+  {
+    var errors = new List<string>();
+
+    // Check for basic email format issues
+    if (!email.Contains('@'))
+    {
+      errors.Add("Email must contain @ symbol");
+      return errors;
+    }
+
+    var parts = email.Split('@');
+    if (parts.Length != 2)
+    {
+      errors.Add("Email must contain exactly one @ symbol");
+      return errors;
+    }
+
+    var localPart = parts[0];
+    var domainPart = parts[1];
+
+    // Validate local part (before @)
+    if (string.IsNullOrWhiteSpace(localPart))
+    {
+      errors.Add("Email local part cannot be empty");
+    }
+
+    // Validate domain part (after @)
+    if (string.IsNullOrWhiteSpace(domainPart))
+    {
+      errors.Add("Email domain part cannot be empty");
+    }
+    else
+    {
+      if (!domainPart.Contains('.'))
+      {
+        errors.Add("Email domain must contain at least one dot");
+      }
+      else
+      {
+        var domainParts = domainPart.Split('.');
+        if (domainParts.Any(part => string.IsNullOrWhiteSpace(part)))
+        {
+          errors.Add("Email domain parts cannot be empty");
+        }
+      }
+    }
+
+    // Check for consecutive dots
+    if (email.Contains(".."))
+    {
+      errors.Add("Email cannot contain consecutive dots");
+    }
+
+    // Check for invalid starting/ending characters
+    if (email.StartsWith('.') || email.EndsWith('.') || email.StartsWith('@') || email.EndsWith('@'))
+    {
+      errors.Add("Email cannot start or end with dot or @ symbol");
+    }
+
+    return errors;
+  }
+
+  /// <summary>
+  /// Validates password length requirements
+  /// </summary>
+  /// <param name="password">Password to validate</param>
+  /// <returns>List of password validation errors</returns>
+  private List<string> ValidatePasswordComplexity(string password)
+  {
+    var errors = new List<string>();
+
+    if (password.Length < 8)
+    {
+      errors.Add("Password must be at least 8 characters long");
+    }
 
     return errors;
   }
