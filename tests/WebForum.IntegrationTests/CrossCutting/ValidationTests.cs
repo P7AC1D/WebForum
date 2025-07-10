@@ -15,7 +15,6 @@ namespace WebForum.IntegrationTests.CrossCutting;
 /// </summary>
 public class ValidationTests : IntegrationTestBase
 {
-  public ValidationTests(WebForumTestFactory factory) : base(factory) { }
 
   [Fact]
   public async Task Registration_ShouldValidateRequiredFields()

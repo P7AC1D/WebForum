@@ -16,7 +16,6 @@ namespace WebForum.IntegrationTests.Workflows;
 /// </summary>
 public class ModerationWorkflowTests : IntegrationTestBase
 {
-  public ModerationWorkflowTests(WebForumTestFactory factory) : base(factory) { }
 
   [Fact]
   public async Task FullModerationWorkflow_ShouldCompleteSuccessfully()

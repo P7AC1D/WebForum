@@ -15,9 +15,6 @@ namespace WebForum.IntegrationTests.Workflows;
 /// </summary>
 public class AuthenticationWorkflowTests : IntegrationTestBase
 {
-  public AuthenticationWorkflowTests(WebForumTestFactory factory) : base(factory)
-  {
-  }
 
   [Fact]
   public async Task CompleteAuthenticationFlow_RegisterLoginCreateContent_ShouldWork()
