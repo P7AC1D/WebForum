@@ -21,10 +21,10 @@ public static class DatabaseSeeder
   /// <param name="commentCount">Number of comments to create</param>
   /// <param name="likeCount">Number of likes to create</param>
   public static async Task SeedAsync(
-      ForumDbContext context, 
-      int userCount = 10, 
-      int postCount = 25, 
-      int commentCount = 50, 
+      ForumDbContext context,
+      int userCount = 10,
+      int postCount = 25,
+      int commentCount = 50,
       int likeCount = 75)
   {
     Console.WriteLine("🧹 Cleaning existing data...");
@@ -109,16 +109,16 @@ public static class DatabaseSeeder
     for (int i = 2; i < count; i++)
     {
       var user = faker.Generate();
-      
+
       // Ensure unique usernames and emails
       var attempts = 0;
-      while ((users.Any(u => u.Username == user.Username) || 
+      while ((users.Any(u => u.Username == user.Username) ||
               users.Any(u => u.Email == user.Email)) && attempts < 10)
       {
         user = faker.Generate();
         attempts++;
       }
-      
+
       if (attempts < 10)
       {
         users.Add(user);
@@ -127,7 +127,7 @@ public static class DatabaseSeeder
 
     context.Users.AddRange(users);
     await context.SaveChangesAsync();
-    
+
     Console.WriteLine($"   ✓ Created {users.Count} users ({users.Count(u => u.Role == UserRoles.Moderator)} moderators)");
     return users;
   }
@@ -144,13 +144,13 @@ public static class DatabaseSeeder
         .RuleFor(p => p.CreatedAt, f => f.Date.PastOffset(180).ToUniversalTime());
 
     var posts = faker.Generate(count);
-    
+
     // Ensure posts are created in chronological order
     posts = posts.OrderBy(p => p.CreatedAt).ToList();
-    
+
     context.Posts.AddRange(posts);
     await context.SaveChangesAsync();
-    
+
     Console.WriteLine($"   ✓ Created {posts.Count} posts");
     return posts;
   }
@@ -167,7 +167,7 @@ public static class DatabaseSeeder
         .RuleFor(c => c.CreatedAt, f => f.Date.PastOffset(90).ToUniversalTime());
 
     var comments = faker.Generate(count);
-    
+
     // Ensure comments are created after their associated posts
     foreach (var comment in comments)
     {
@@ -177,10 +177,10 @@ public static class DatabaseSeeder
         comment.CreatedAt = post.CreatedAt.AddMinutes(faker.Random.Int(1, 60 * 24 * 7)); // 1 minute to 1 week after post
       }
     }
-    
+
     context.Comments.AddRange(comments);
     await context.SaveChangesAsync();
-    
+
     Console.WriteLine($"   ✓ Created {comments.Count} comments");
   }
 
@@ -197,29 +197,29 @@ public static class DatabaseSeeder
     {
       var user = faker.PickRandom(users);
       var post = faker.PickRandom(posts);
-      
+
       // Business rule: Users cannot like their own posts
       if (user.Id == post.AuthorId)
         continue;
-      
+
       // Business rule: Each user can only like a post once
       if (usedCombinations.Contains((user.Id, post.Id)))
         continue;
-      
+
       var like = new LikeEntity
       {
         UserId = user.Id,
         PostId = post.Id,
         CreatedAt = faker.Date.BetweenOffset(post.CreatedAt, DateTimeOffset.UtcNow).ToUniversalTime()
       };
-      
+
       likes.Add(like);
       usedCombinations.Add((user.Id, post.Id));
     }
-    
+
     context.Likes.AddRange(likes);
     await context.SaveChangesAsync();
-    
+
     Console.WriteLine($"   ✓ Created {likes.Count} likes");
   }
 
@@ -236,7 +236,7 @@ public static class DatabaseSeeder
     var postsToTag = faker.PickRandom(posts, taggedPostsCount);
 
     var tags = new List<PostTagEntity>();
-    
+
     foreach (var post in postsToTag)
     {
       var moderator = faker.PickRandom(moderators);
@@ -249,10 +249,10 @@ public static class DatabaseSeeder
       };
       tags.Add(tag);
     }
-    
+
     context.PostTags.AddRange(tags);
     await context.SaveChangesAsync();
-    
+
     Console.WriteLine($"   ✓ Created {tags.Count} moderation tags");
   }
 }
