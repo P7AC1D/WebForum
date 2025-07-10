@@ -95,6 +95,72 @@ case "$1" in
     migrate)
         update_database
         ;;
+    seed)
+        # Parse seed parameters
+        USERS=10
+        POSTS=25
+        COMMENTS=50
+        LIKES=75
+        FORCE_FLAG=""
+        
+        # Process arguments
+        shift # Remove 'seed' argument
+        while [[ $# -gt 0 ]]; do
+            case $1 in
+                --users)
+                    USERS="$2"
+                    shift 2
+                    ;;
+                --posts)
+                    POSTS="$2"
+                    shift 2
+                    ;;
+                --comments)
+                    COMMENTS="$2"
+                    shift 2
+                    ;;
+                --likes)
+                    LIKES="$2"
+                    shift 2
+                    ;;
+                --force)
+                    FORCE_FLAG="--force"
+                    shift
+                    ;;
+                *)
+                    echo "Unknown option: $1"
+                    exit 1
+                    ;;
+            esac
+        done
+        
+        echo "🌱 Seeding database with test data..."
+        echo "├── Users: $USERS"
+        echo "├── Posts: $POSTS"
+        echo "├── Comments: $COMMENTS"
+        echo "└── Likes: $LIKES"
+        echo ""
+        
+        cd src/WebForum.DataSeeder
+        if dotnet run -- --users "$USERS" --posts "$POSTS" --comments "$COMMENTS" --likes "$LIKES" $FORCE_FLAG; then
+            echo ""
+            echo "✅ Database seeded successfully!"
+            echo ""
+            echo "🎯 Ready for assessment:"
+            echo "├── API: https://localhost:7094"
+            echo "├── Scalar UI: https://localhost:7094/scalar/v1"
+            echo "└── pgAdmin: http://localhost:5050"
+            echo ""
+            echo "💡 Test credentials:"
+            echo "├── Admin: admin@webforum.com / password123"
+            echo "├── Moderator: moderator@webforum.com / password123"
+            echo "└── User: testuser@webforum.com / password123"
+        else
+            echo "❌ Database seeding failed!"
+            exit 1
+        fi
+        cd ../..
+        ;;
     logs)
         docker-compose logs -f postgres
         ;;
@@ -112,7 +178,7 @@ case "$1" in
         ;;
     *)
         echo "Web Forum Database Management"
-        echo "Usage: $0 [command]"
+        echo "Usage: $0 [command] [options]"
         echo ""
         echo "Commands:"
         echo "  start                    - Start the PostgreSQL database and apply migrations"
@@ -120,10 +186,23 @@ case "$1" in
         echo "  restart                  - Restart the database"
         echo "  reset                    - Reset database and migrations (WARNING: deletes all data and migrations)"
         echo "  migrate                  - Apply EF Core migrations to the database"
+        echo "  seed                     - Populate database with realistic test data for assessment"
         echo "  logs                     - Show database logs"
         echo "  connect                  - Connect to database via psql"
         echo "  backup                   - Create a database backup"
         echo "  status                   - Show service status"
+        echo ""
+        echo "Seed Options:"
+        echo "  --users [count]          - Number of users to create (default: 10)"
+        echo "  --posts [count]          - Number of posts to create (default: 25)"
+        echo "  --comments [count]       - Number of comments to create (default: 50)"
+        echo "  --likes [count]          - Number of likes to create (default: 75)"
+        echo "  --force                  - Overwrite existing data"
+        echo ""
+        echo "Examples:"
+        echo "  ./db.sh seed                                    - Seed with default amounts"
+        echo "  ./db.sh seed --users 20 --posts 50             - Seed with custom amounts"
+        echo "  ./db.sh seed --force                            - Overwrite existing data"
         exit 1
         ;;
 esac

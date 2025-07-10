@@ -123,9 +123,59 @@ function Show-Status {
   docker-compose ps
 }
 
+function Seed-Database {
+  param(
+    [int]$Users = 10,
+    [int]$Posts = 25,
+    [int]$Comments = 50,
+    [int]$Likes = 75,
+    [switch]$Force
+  )
+  
+  Write-Host "🌱 Seeding database with test data..." -ForegroundColor Green
+  Write-Host "├── Users: $Users" -ForegroundColor Cyan
+  Write-Host "├── Posts: $Posts" -ForegroundColor Cyan
+  Write-Host "├── Comments: $Comments" -ForegroundColor Cyan
+  Write-Host "└── Likes: $Likes" -ForegroundColor Cyan
+  Write-Host ""
+  
+  Push-Location "src\WebForum.DataSeeder"
+  try {
+    $args = @("--users", $Users, "--posts", $Posts, "--comments", $Comments, "--likes", $Likes)
+    if ($Force) {
+      $args += "--force"
+    }
+    
+    dotnet run -- @args
+    
+    if ($LASTEXITCODE -eq 0) {
+      Write-Host ""
+      Write-Host "✅ Database seeded successfully!" -ForegroundColor Green
+      Write-Host ""
+      Write-Host "🎯 Ready for assessment:" -ForegroundColor Yellow
+      Write-Host "├── API: https://localhost:7094" -ForegroundColor White
+      Write-Host "├── Scalar UI: https://localhost:7094/scalar/v1" -ForegroundColor White
+      Write-Host "└── pgAdmin: http://localhost:5050" -ForegroundColor White
+      Write-Host ""
+      Write-Host "💡 Test credentials:" -ForegroundColor Yellow
+      Write-Host "├── Admin: admin@webforum.com / password123" -ForegroundColor White
+      Write-Host "├── Moderator: moderator@webforum.com / password123" -ForegroundColor White
+      Write-Host "└── User: testuser@webforum.com / password123" -ForegroundColor White
+    } else {
+      Write-Host "❌ Database seeding failed!" -ForegroundColor Red
+    }
+  }
+  catch {
+    Write-Host "Failed to seed database: $_" -ForegroundColor Red
+  }
+  finally {
+    Pop-Location
+  }
+}
+
 function Show-Help {
   Write-Host "Web Forum Database Management" -ForegroundColor Cyan
-  Write-Host "Usage: .\db.ps1 [command]" -ForegroundColor White
+  Write-Host "Usage: .\db.ps1 [command] [options]" -ForegroundColor White
   Write-Host ""
   Write-Host "Commands:" -ForegroundColor White
   Write-Host "  start          - Start the PostgreSQL database and apply migrations" -ForegroundColor Gray
@@ -133,10 +183,59 @@ function Show-Help {
   Write-Host "  restart        - Restart the database" -ForegroundColor Gray
   Write-Host "  reset          - Reset database and migrations (WARNING: deletes all data and migrations)" -ForegroundColor Gray
   Write-Host "  migrate        - Apply EF Core migrations to the database" -ForegroundColor Gray
+  Write-Host "  seed           - Populate database with realistic test data for assessment" -ForegroundColor Gray
   Write-Host "  logs           - Show database logs" -ForegroundColor Gray
   Write-Host "  connect        - Connect to database via psql" -ForegroundColor Gray
   Write-Host "  backup         - Create a database backup" -ForegroundColor Gray
   Write-Host "  status         - Show service status" -ForegroundColor Gray
+  Write-Host ""
+  Write-Host "Seed Options:" -ForegroundColor White
+  Write-Host "  -Users [count]    - Number of users to create (default: 10)" -ForegroundColor Gray
+  Write-Host "  -Posts [count]    - Number of posts to create (default: 25)" -ForegroundColor Gray
+  Write-Host "  -Comments [count] - Number of comments to create (default: 50)" -ForegroundColor Gray
+  Write-Host "  -Likes [count]    - Number of likes to create (default: 75)" -ForegroundColor Gray
+  Write-Host "  -Force            - Overwrite existing data" -ForegroundColor Gray
+  Write-Host ""
+  Write-Host "Examples:" -ForegroundColor White
+  Write-Host "  .\db.ps1 seed                              - Seed with default amounts" -ForegroundColor Gray
+  Write-Host "  .\db.ps1 seed -Users 20 -Posts 50         - Seed with custom amounts" -ForegroundColor Gray
+  Write-Host "  .\db.ps1 seed -Force                       - Overwrite existing data" -ForegroundColor Gray
+}
+
+# Parse additional parameters for seed command
+$SeedUsers = 10
+$SeedPosts = 25
+$SeedComments = 50
+$SeedLikes = 75
+$Force = $false
+
+# Process named parameters
+for ($i = 1; $i -lt $args.Count; $i++) {
+  switch ($args[$i]) {
+    "-Users" { 
+      if (($i + 1) -lt $args.Count) { 
+        $SeedUsers = [int]$args[++$i] 
+      }
+    }
+    "-Posts" { 
+      if (($i + 1) -lt $args.Count) { 
+        $SeedPosts = [int]$args[++$i] 
+      }
+    }
+    "-Comments" { 
+      if (($i + 1) -lt $args.Count) { 
+        $SeedComments = [int]$args[++$i] 
+      }
+    }
+    "-Likes" { 
+      if (($i + 1) -lt $args.Count) { 
+        $SeedLikes = [int]$args[++$i] 
+      }
+    }
+    "-Force" { 
+      $Force = $true 
+    }
+  }
 }
 
 switch ($Command) {
@@ -145,6 +244,7 @@ switch ($Command) {
   "restart" { Restart-Database }
   "reset" { Reset-Database }
   "migrate" { Update-Database }
+  "seed" { Seed-Database -Users $SeedUsers -Posts $SeedPosts -Comments $SeedComments -Likes $SeedLikes -Force:$Force }
   "logs" { Show-Logs }
   "connect" { Connect-Database }
   "backup" { Backup-Database }
