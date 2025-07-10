@@ -184,8 +184,10 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     try
     {
-      // Only use migrations - this will create the database and schema if it doesn't exist
-      // and apply any pending migrations if it does exist
+      // First ensure database exists and is accessible
+      await context.Database.EnsureCreatedAsync();
+      
+      // Apply any pending migrations
       await context.Database.MigrateAsync();
     }
     catch (Exception ex)

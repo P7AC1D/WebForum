@@ -14,6 +14,9 @@ namespace WebForum.IntegrationTests.CrossCutting;
 /// </summary>
 public class SecurityTests : IntegrationTestBase
 {
+  public SecurityTests(WebForumTestFactory factory) : base(factory)
+  {
+  }
 
   [Fact]
   public async Task UnauthorizedAccess_ToProtectedEndpoints_ShouldReturnUnauthorized()

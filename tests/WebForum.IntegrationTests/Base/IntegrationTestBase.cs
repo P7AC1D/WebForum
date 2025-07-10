@@ -8,35 +8,34 @@ namespace WebForum.IntegrationTests.Base;
 /// <summary>
 /// Base class for integration tests providing common setup and utilities
 /// </summary>
-public abstract class IntegrationTestBase : IAsyncLifetime
+public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>, IAsyncLifetime
 {
-  protected WebForumTestFactory Factory { get; private set; } = null!;
-  protected HttpClient Client { get; private set; } = null!;
+  protected readonly WebForumTestFactory Factory;
+  protected readonly HttpClient Client;
+
+  protected IntegrationTestBase(WebForumTestFactory factory)
+  {
+    Factory = factory;
+    Client = factory.CreateClient();
+  }
 
   /// <summary>
-  /// Initialize before each test - create fresh factory and clean database
+  /// Initialize before each test - ensure clean database
   /// </summary>
   public async Task InitializeAsync()
   {
-    Factory = new WebForumTestFactory();
-    await Factory.InitializeAsync();
-    Client = Factory.CreateClient();
-    
-    // Ensure database is ready
     await Factory.EnsureDatabaseCreatedAsync();
     await Factory.CleanDatabaseAsync();
   }
 
   /// <summary>
-  /// Clean up after each test - dispose factory and container
+  /// Clean up after each test
   /// </summary>
-  public async Task DisposeAsync()
+  public Task DisposeAsync()
   {
-    Client?.Dispose();
-    if (Factory != null)
-    {
-      await Factory.DisposeAsync();
-    }
+    // Optional: clean up after each test
+    // We can skip this if InitializeAsync is sufficient
+    return Task.CompletedTask;
   }
 
   /// <summary>

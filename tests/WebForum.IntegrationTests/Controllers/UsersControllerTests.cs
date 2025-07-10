@@ -14,6 +14,9 @@ namespace WebForum.IntegrationTests.Controllers;
 /// </summary>
 public class UsersControllerTests : IntegrationTestBase
 {
+  public UsersControllerTests(WebForumTestFactory factory) : base(factory)
+  {
+  }
 
   [Fact]
   public async Task GetUser_WithValidId_ShouldReturnUserInfo()

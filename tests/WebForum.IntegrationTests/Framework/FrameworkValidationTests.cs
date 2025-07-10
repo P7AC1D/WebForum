@@ -10,6 +10,9 @@ namespace WebForum.IntegrationTests.Framework;
 /// </summary>
 public class FrameworkValidationTests : IntegrationTestBase
 {
+  public FrameworkValidationTests(WebForumTestFactory factory) : base(factory)
+  {
+  }
 
   [Fact]
   public void TestFactory_ShouldInitializeSuccessfully()
@@ -198,7 +201,8 @@ public class FrameworkValidationTests : IntegrationTestBase
   [Fact]
   public async Task MultipleTests_ShouldIsolateDataCorrectly()
   {
-    // Arrange & Act - First test operation
+    // Arrange
+    // Act & Assert - First test operation
     var testData1 = await SeedTestDataAsync(userCount: 2);
     using (var dbContext1 = GetDbContext())
     {
@@ -206,10 +210,8 @@ public class FrameworkValidationTests : IntegrationTestBase
       userCount1.Should().Be(2);
     }
 
-    // Clean database manually for this test
-    await Factory.CleanDatabaseAsync();
-
-    // Act & Assert - Second test operation (should start fresh)
+    // Clean database
+    // Act & Assert - Second test operation
     var testData2 = await SeedTestDataAsync(userCount: 3);
     using var dbContext2 = GetDbContext();
     var userCount2 = await dbContext2.Users.CountAsync();

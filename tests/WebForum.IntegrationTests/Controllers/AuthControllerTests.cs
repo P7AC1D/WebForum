@@ -15,6 +15,9 @@ namespace WebForum.IntegrationTests.Controllers;
 /// </summary>
 public class AuthControllerTests : IntegrationTestBase
 {
+  public AuthControllerTests(WebForumTestFactory factory) : base(factory)
+  {
+  }
 
   [Fact]
   public async Task Register_WithValidData_ShouldCreateUser()

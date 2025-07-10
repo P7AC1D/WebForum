@@ -15,6 +15,9 @@ namespace WebForum.IntegrationTests.Controllers;
 /// </summary>
 public class PostsControllerTests : IntegrationTestBase
 {
+  public PostsControllerTests(WebForumTestFactory factory) : base(factory)
+  {
+  }
 
   [Fact]
   public async Task GetPosts_WithDefaultParameters_ShouldReturnPagedResults()

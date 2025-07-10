@@ -15,6 +15,7 @@ namespace WebForum.IntegrationTests.CrossCutting;
 /// </summary>
 public class PerformanceTests : IntegrationTestBase
 {
+  public PerformanceTests(WebForumTestFactory factory) : base(factory) { }
 
   [Fact]
   public async Task Api_ShouldHandleBasicOperationsWithinReasonableTime()

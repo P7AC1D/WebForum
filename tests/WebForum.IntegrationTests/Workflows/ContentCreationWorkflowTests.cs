@@ -15,6 +15,9 @@ namespace WebForum.IntegrationTests.Workflows;
 /// </summary>
 public class ContentCreationWorkflowTests : IntegrationTestBase
 {
+  public ContentCreationWorkflowTests(WebForumTestFactory factory) : base(factory)
+  {
+  }
 
   [Fact]
   public async Task CompleteContentLifecycle_CreatePostAddCommentsLike_ShouldWork()

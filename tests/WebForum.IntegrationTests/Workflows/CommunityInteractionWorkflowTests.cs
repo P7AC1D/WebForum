@@ -14,6 +14,9 @@ namespace WebForum.IntegrationTests.Workflows;
 /// </summary>
 public class CommunityInteractionWorkflowTests : IntegrationTestBase
 {
+  public CommunityInteractionWorkflowTests(WebForumTestFactory factory) : base(factory)
+  {
+  }
 
   [Fact]
   public async Task ContentDiscoveryWorkflow_BrowseFilterSort_ShouldWork()
