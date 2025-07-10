@@ -54,4 +54,6 @@ jobs:
         dotnet test tests/WebForum.IntegrationTests/WebForum.IntegrationTests.csproj \
           --configuration Release \
           --no-build \
-          --verbosity normal
+          --verbosity normal \
+          --logger "console;verbosity=detailed" \
+          -- -parallel none -maxthreads 1
