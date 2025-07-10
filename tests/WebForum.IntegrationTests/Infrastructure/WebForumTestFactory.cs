@@ -252,8 +252,43 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
         // Debug: Check the actual connection string being used
         Console.WriteLine($"EF Core using connection: {context.Database.GetConnectionString()}");
 
-        // Now run migrations
-        await context.Database.MigrateAsync();
+        // Debug: Check if migrations are available
+        var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+        var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
+        
+        Console.WriteLine($"Applied migrations: {string.Join(", ", appliedMigrations)}");
+        Console.WriteLine($"Pending migrations: {string.Join(", ", pendingMigrations)}");
+        
+        if (!pendingMigrations.Any())
+        {
+          Console.WriteLine("No pending migrations found. This might indicate the migration files are not available.");
+          
+          // Try to ensure database is created even without explicit migrations
+          var created = await context.Database.EnsureCreatedAsync();
+          Console.WriteLine($"Database EnsureCreated result: {created}");
+          
+          // If EnsureCreated was used, verify tables exist
+          if (created)
+          {
+            Console.WriteLine("Database created using EnsureCreated. Verifying tables...");
+            using var verifyCommand = connection.CreateCommand();
+            verifyCommand.CommandText = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'PostTags')";
+            var verifyTableExists = (bool)(await verifyCommand.ExecuteScalarAsync() ?? false);
+            
+            if (verifyTableExists)
+            {
+              Console.WriteLine("Tables verified after EnsureCreated!");
+              return; // Success
+            }
+          }
+        }
+        else
+        {
+          Console.WriteLine($"Found {pendingMigrations.Count()} pending migrations to apply.");
+          
+          // Now run migrations
+          await context.Database.MigrateAsync();
+        }
 
         Console.WriteLine("Migrations completed, verifying tables...");
 

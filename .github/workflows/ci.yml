@@ -46,6 +46,11 @@ jobs:
           echo "No migrations found. Creating initial migration..."
           dotnet ef migrations add InitialCreate
           echo "Initial migration created successfully!"
+          
+          # Rebuild the solution to include the new migrations
+          echo "Rebuilding solution to include new migrations..."
+          cd ../../
+          dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
         else
           echo "Migrations already exist."
         fi
