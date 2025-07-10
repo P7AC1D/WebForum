@@ -20,34 +20,40 @@ public static class TestAuthenticationHelper
     /// </summary>
     /// <param name="userId">User ID for the token</param>
     /// <param name="username">Username for the token</param>
+    /// <param name="email">Email for the token (defaults to test email)</param>
     /// <param name="roles">User roles for authorization</param>
     /// <param name="expirationMinutes">Token expiration time in minutes (default: 60)</param>
     /// <returns>JWT token string</returns>
     public static string GenerateJwtToken(
         int userId, 
         string username, 
+        string email = "test@example.com",
         UserRoles roles = UserRoles.User, 
         int expirationMinutes = 60)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(TestSecretKey);
 
+        // Use Unix timestamp for higher precision and uniqueness (matching SecurityService)
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var expiry = DateTimeOffset.UtcNow.AddMinutes(expirationMinutes).ToUnixTimeSeconds();
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(ClaimTypes.Name, username),
-            new("username", username)
+            new(ClaimTypes.Email, email),
+            new(ClaimTypes.Role, roles.ToString()),
+            new(JwtRegisteredClaimNames.Nbf, now.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Exp, expiry.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Iat, now.ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
-
-        // Add role claims
-        if (roles.HasFlag(UserRoles.User))
-            claims.Add(new Claim(ClaimTypes.Role, "User"));
-        if (roles.HasFlag(UserRoles.Moderator))
-            claims.Add(new Claim(ClaimTypes.Role, "Moderator"));
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
+            NotBefore = DateTime.UtcNow,
             Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),
             Issuer = TestIssuer,
             Audience = TestAudience,
@@ -75,7 +81,7 @@ public static class TestAuthenticationHelper
         UserRoles roles = UserRoles.User)
     {
         var client = factory.CreateClient();
-        var token = GenerateJwtToken(userId, username, roles);
+        var token = GenerateJwtToken(userId, username, "test@example.com", roles);
         client.DefaultRequestHeaders.Authorization = 
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         return client;
@@ -93,7 +99,7 @@ public static class TestAuthenticationHelper
         string username,
         UserRoles roles = UserRoles.User)
     {
-        var token = GenerateJwtToken(userId, username, roles);
+        var token = GenerateJwtToken(userId, username, "test@example.com", roles);
         return $"Bearer {token}";
     }
 

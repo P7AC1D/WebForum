@@ -97,7 +97,7 @@ public class FrameworkValidationTests : IntegrationTestBase
         var roles = WebForum.Api.Models.UserRoles.User;
 
         // Act
-        var token = TestAuthenticationHelper.GenerateJwtToken(userId, username, roles);
+        var token = TestAuthenticationHelper.GenerateJwtToken(userId, username, "test@example.com", roles);
         var authClient = CreateAuthenticatedClient(userId, username, roles);
 
         // Assert

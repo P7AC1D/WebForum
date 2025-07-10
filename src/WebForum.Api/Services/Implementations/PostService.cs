@@ -28,7 +28,7 @@ public class PostService : IPostService
   /// <param name="dateFrom">Filter posts created from this date onwards</param>
   /// <param name="dateTo">Filter posts created until this date</param>
   /// <param name="tags">Filter posts by tags (comma-separated list)</param>
-  /// <param name="sortBy">Sort field: 'date' or 'likeCount'</param>
+  /// <param name="sortBy">Sort field: 'date', 'likeCount', or 'title'</param>
   /// <param name="sortOrder">Sort order: 'asc' or 'desc'</param>
   /// <returns>Paginated list of posts with like counts and author information</returns>
   /// <exception cref="ArgumentException">Thrown when query parameters are invalid</exception>
@@ -87,6 +87,9 @@ public class PostService : IPostService
       "likecount" => sortOrder?.ToLower() == "asc"
           ? query.OrderBy(p => _context.Likes.Count(l => l.PostId == p.Id))
           : query.OrderByDescending(p => _context.Likes.Count(l => l.PostId == p.Id)),
+      "title" => sortOrder?.ToLower() == "asc"
+          ? query.OrderBy(p => p.Title)
+          : query.OrderByDescending(p => p.Title),
       "date" or _ => sortOrder?.ToLower() == "asc"
           ? query.OrderBy(p => p.CreatedAt)
           : query.OrderByDescending(p => p.CreatedAt)

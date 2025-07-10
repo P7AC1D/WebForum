@@ -60,7 +60,7 @@ public static class TestDataHelper
         var userFaker = new Faker<UserEntity>()
             .RuleFor(u => u.Username, f => f.Internet.UserName())
             .RuleFor(u => u.Email, f => f.Internet.Email())
-            .RuleFor(u => u.PasswordHash, f => f.Random.Hash())
+            .RuleFor(u => u.PasswordHash, f => BCrypt.Net.BCrypt.HashPassword("TestPassword123!", workFactor: 12))
             .RuleFor(u => u.Role, f => f.PickRandom<UserRoles>())
             .RuleFor(u => u.CreatedAt, f => f.Date.Past(365).ToUniversalTime());
 
@@ -171,13 +171,17 @@ public static class TestDataHelper
         ForumDbContext context,
         string username = "testuser",
         string email = "test@example.com",
-        UserRoles roles = UserRoles.User)
+        UserRoles roles = UserRoles.User,
+        string password = "TestPassword123!")
     {
+        // Use proper BCrypt hashing like the real API
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+        
         var user = new UserEntity
         {
             Username = username,
             Email = email,
-            PasswordHash = _faker.Random.Hash(),
+            PasswordHash = passwordHash,
             Role = roles,
             CreatedAt = DateTimeOffset.UtcNow
         };

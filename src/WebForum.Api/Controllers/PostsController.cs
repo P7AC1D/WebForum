@@ -89,11 +89,11 @@ public class PostsController : ControllerBase
       }
 
       // Validate sortBy parameter
-      var validSortBy = new[] { "date", "likecount" };
+      var validSortBy = new[] { "date", "likecount", "title" };
       if (!validSortBy.Contains(sortBy.ToLower()))
       {
         _logger.LogWarning("Invalid sortBy parameter: {SortBy}", sortBy);
-        return BadRequest("SortBy must be 'date' or 'likeCount'");
+        return BadRequest("SortBy must be 'date', 'likeCount', or 'title'");
       }
 
       // Validate sortOrder parameter
@@ -171,7 +171,7 @@ public class PostsController : ControllerBase
       if (id <= 0)
       {
         _logger.LogWarning("Invalid post ID: {PostId}", id);
-        return BadRequest("Post ID must be greater than zero");
+        return NotFound($"Post with ID {id} not found");
       }
 
       var post = await _postService.GetPostByIdAsync(id);

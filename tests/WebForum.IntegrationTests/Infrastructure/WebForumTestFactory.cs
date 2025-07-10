@@ -5,10 +5,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Data.Common;
+using System.Text;
 using Testcontainers.PostgreSql;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using WebForum.Api.Data;
 
 namespace WebForum.IntegrationTests.Infrastructure;
@@ -137,6 +140,26 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
                 options.UseNpgsql(ConnectionString);
                 options.EnableSensitiveDataLogging();
                 options.EnableDetailedErrors();
+            });
+
+            // Reconfigure JWT Bearer authentication for test environment
+            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                var testSecretKey = "TestSecretKeyThatIsAtLeast32CharactersLongForTesting!";
+                var testIssuer = "WebForumTestApi";
+                var testAudience = "WebForumTestUsers";
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = testIssuer,
+                    ValidAudience = testAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(testSecretKey)),
+                    ClockSkew = TimeSpan.Zero
+                };
             });
 
             // Configure logging for tests
