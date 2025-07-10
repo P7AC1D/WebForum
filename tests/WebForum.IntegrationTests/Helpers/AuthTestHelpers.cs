@@ -35,7 +35,7 @@ public static class AuthTestHelpers
         };
 
         var response = await client.PostAsJsonAsync("/api/auth/register", registrationRequest);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
         return new UserInfo

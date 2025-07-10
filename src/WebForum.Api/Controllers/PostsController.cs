@@ -582,7 +582,7 @@ public class PostsController : ControllerBase
     catch (UnauthorizedAccessException ex)
     {
       _logger.LogWarning("Unauthorized access: {Message}", ex.Message);
-      return Forbid(ex.Message);
+      return StatusCode(403, ex.Message);
     }
     catch (Exception ex)
     {
@@ -648,7 +648,7 @@ public class PostsController : ControllerBase
     catch (UnauthorizedAccessException ex)
     {
       _logger.LogWarning("Unauthorized access: {Message}", ex.Message);
-      return Forbid(ex.Message);
+      return StatusCode(403, ex.Message);
     }
     catch (Exception ex)
     {
