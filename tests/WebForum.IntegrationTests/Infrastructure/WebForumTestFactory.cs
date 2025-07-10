@@ -75,10 +75,6 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     await _dbContainer.StartAsync();
 
-    // Log connection details for debugging CI issues
-    var connectionString = _dbContainer.GetConnectionString();
-    Console.WriteLine($"Database container started. Connection: {connectionString}");
-
     // Test connection with retry logic and database readiness
     var maxRetries = 30;
     var delay = TimeSpan.FromMilliseconds(500);
@@ -88,17 +84,13 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     {
       try
       {
-        Console.WriteLine($"Connection attempt {i + 1}/{maxRetries} to {ConnectionString}");
-
         using var testConnection = new Npgsql.NpgsqlConnection(ConnectionString);
         await testConnection.OpenAsync();
 
         // Test that we can actually query the database
         using var testCommand = testConnection.CreateCommand();
         testCommand.CommandText = "SELECT 1";
-        var result = await testCommand.ExecuteScalarAsync();
-
-        Console.WriteLine($"Database connection successful! Query result: {result}");
+        await testCommand.ExecuteScalarAsync();
 
         // Connection successful, keep a permanent connection for the factory
         _dbConnection = new Npgsql.NpgsqlConnection(ConnectionString);
@@ -109,7 +101,6 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       catch (Exception ex) when (i < maxRetries - 1)
       {
         lastException = ex;
-        Console.WriteLine($"Connection attempt {i + 1} failed: {ex.Message}");
 
         // Close any partial connection
         _dbConnection?.Close();
@@ -123,7 +114,6 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       catch (Exception ex)
       {
         lastException = ex;
-        Console.WriteLine($"Final connection attempt {i + 1} failed: {ex.Message}");
         break;
       }
     }
@@ -133,11 +123,8 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       var errorMessage = $"Failed to connect to PostgreSQL container after {maxRetries} retries. " +
                         $"Connection string: {ConnectionString}. " +
                         $"Last error: {lastException?.Message}";
-      Console.WriteLine(errorMessage);
       throw new InvalidOperationException(errorMessage, lastException);
     }
-
-    Console.WriteLine("Database initialization completed successfully!");
   }
 
   /// <summary>
@@ -221,10 +208,6 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     using var scope = CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
 
-    // Debug: Log the expected vs actual connection strings
-    Console.WriteLine($"Test container connection: {ConnectionString}");
-    Console.WriteLine($"EF Core connection: {context.Database.GetConnectionString()}");
-
     // Add retry logic for CI environments where containers might still be initializing
     var maxRetries = 10;
     var delay = TimeSpan.FromMilliseconds(500);
@@ -233,8 +216,6 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     {
       try
       {
-        Console.WriteLine($"Migration attempt {retry + 1}/{maxRetries}");
-
         // First ensure we can connect to the database
         var connection = context.Database.GetDbConnection();
         if (connection.State != System.Data.ConnectionState.Open)
@@ -247,79 +228,54 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
         testCommand.CommandText = "SELECT 1";
         await testCommand.ExecuteScalarAsync();
 
-        Console.WriteLine("Database connection verified, running migrations...");
-
-        // Debug: Check the actual connection string being used
-        Console.WriteLine($"EF Core using connection: {context.Database.GetConnectionString()}");
-
-        // Debug: Check if migrations are available
+        // Check if migrations are available
         var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-        var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
-        
-        Console.WriteLine($"Applied migrations: {string.Join(", ", appliedMigrations)}");
-        Console.WriteLine($"Pending migrations: {string.Join(", ", pendingMigrations)}");
         
         if (!pendingMigrations.Any())
         {
-          Console.WriteLine("No pending migrations found. This might indicate the migration files are not available.");
-          
           // Try to ensure database is created even without explicit migrations
           var created = await context.Database.EnsureCreatedAsync();
-          Console.WriteLine($"Database EnsureCreated result: {created}");
           
           // If EnsureCreated was used, verify tables exist
           if (created)
           {
-            Console.WriteLine("Database created using EnsureCreated. Verifying tables...");
             using var verifyCommand = connection.CreateCommand();
             verifyCommand.CommandText = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'PostTags')";
             var verifyTableExists = (bool)(await verifyCommand.ExecuteScalarAsync() ?? false);
             
             if (verifyTableExists)
             {
-              Console.WriteLine("Tables verified after EnsureCreated!");
               return; // Success
             }
           }
         }
         else
         {
-          Console.WriteLine($"Found {pendingMigrations.Count()} pending migrations to apply.");
-          
-          // Now run migrations
+          // Apply migrations
           await context.Database.MigrateAsync();
         }
 
-        Console.WriteLine("Migrations completed, verifying tables...");
-
-        // Verify that all required tables exist using the same connection
+        // Verify that all required tables exist
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'PostTags')";
         var tableExists = (bool)(await command.ExecuteScalarAsync() ?? false);
 
         if (tableExists)
         {
-          Console.WriteLine("Database schema verification successful!");
-          // Add delay to ensure migration is fully committed in CI environment
+          // Add small delay to ensure migration is fully committed in CI environment
           await Task.Delay(100);
           return;
         }
-        else
-        {
-          Console.WriteLine("PostTags table not found, retrying...");
-        }
       }
-      catch (Exception ex) when (retry < maxRetries - 1)
+      catch (Exception) when (retry < maxRetries - 1)
       {
-        Console.WriteLine($"Migration attempt {retry + 1} failed: {ex.Message}");
         // Log and retry for CI environment timing issues
         await Task.Delay(delay);
         delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 1.5, 5000)); // Exponential backoff with cap
         continue;
       }
-      catch (Exception ex)
+      catch (Exception)
       {
-        Console.WriteLine($"Final migration attempt {retry + 1} failed: {ex.Message}");
         throw;
       }
     }
@@ -370,10 +326,10 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       await ResetSequenceIfExistsAsync(context, "PostTags_Id_seq");
       await Task.Delay(25);
     }
-    catch (Exception ex)
+    catch (Exception)
     {
       // In CI environments, sometimes cleanup fails due to timing - log but don't fail tests
-      Console.WriteLine($"Warning: Database cleanup encountered issues: {ex.Message}");
+      // Swallow the exception to prevent test failures due to cleanup issues
     }
   }
 
