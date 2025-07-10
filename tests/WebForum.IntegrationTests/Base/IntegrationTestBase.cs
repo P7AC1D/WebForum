@@ -22,10 +22,7 @@ public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>
   /// </summary>
   protected async Task InitializeTestAsync()
   {
-    // First ensure database is created and migrations are applied
     await Factory.EnsureDatabaseCreatedAsync();
-    
-    // Then clean any existing data
     await Factory.CleanDatabaseAsync();
   }
 
