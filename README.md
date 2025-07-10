@@ -11,6 +11,7 @@ A RESTful API backend for a web forum built with ASP.NET Core, Entity Framework 
 - **Likes**: Like/unlike posts and comments
 - **Moderation**: Content moderation with post tagging and management
 - **Interactive Documentation**: Scalar UI for API exploration
+- **Database Seeding**: Comprehensive test data generation for development and testing
 
 ## Tech Stack
 
@@ -22,6 +23,7 @@ A RESTful API backend for a web forum built with ASP.NET Core, Entity Framework 
 - **Containerization**: Docker & Docker Compose
 - **Validation**: FluentValidation
 - **Testing**: xUnit (Unit & Integration tests)
+- **CI/CD**: GitHub Actions with automated testing and coverage reports
 
 ## Quick Start
 
@@ -33,7 +35,7 @@ A RESTful API backend for a web forum built with ASP.NET Core, Entity Framework 
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/P7AC1D/WebForum
 cd web-forum
 ```
 
@@ -55,7 +57,39 @@ This will:
 - Automatically create initial migrations if none exist
 - Apply all EF Core migrations to the database
 
-### 3. Run the API
+### 3. Seed the Database (Recommended)
+
+**⚠️ Important**: Run database seeding before testing the API to have realistic test data.
+
+```powershell
+# Windows
+.\db.ps1 seed
+
+# Linux/macOS
+./db.sh seed
+```
+
+This will populate the database with:
+- Test users (including admin and moderator accounts)
+- Sample posts with various content
+- Comments and likes
+- Moderation tags for testing
+
+**Seeding Options:**
+```powershell
+# Custom seeding amounts
+.\db.ps1 seed --users 15 --posts 50 --comments 100 --likes 150
+
+# Force overwrite existing data
+.\db.ps1 seed --force
+```
+
+**Test Credentials (after seeding):**
+- **Admin**: admin@webforum.com / password123
+- **Moderator**: moderator@webforum.com / password123  
+- **User**: testuser@webforum.com / password123
+
+### 4. Run the API
 
 ```bash
 cd src/WebForum.Api
@@ -63,11 +97,17 @@ dotnet run
 ```
 
 The API will be available at:
-- **API**: https://localhost:7094 (or http://localhost:5163)
-- **Scalar UI**: https://localhost:7094/scalar/v1
-- **Swagger UI**: https://localhost:7094/swagger
+- **API**: https://localhost:7121 (or http://localhost:5043)
+- **Scalar UI**: https://localhost:7121/scalar/v1 (or http://localhost:5043/scalar/v1)
+- **Swagger UI**: https://localhost:7121/swagger (or http://localhost:5043/swagger)
 
-### 4. Access pgAdmin (Optional)
+### 5. Test with Postman Collection
+
+A comprehensive Postman collection is included: `WebForum.postman_collection.json`
+
+Import this collection to test all API endpoints with pre-configured requests and test data.
+
+### 6. Access pgAdmin (Optional)
 
 - **URL**: http://localhost:5050
 - **Email**: admin@webforum.com
@@ -86,6 +126,7 @@ Convenient scripts are provided for database operations:
 | `restart` | Restart the database |
 | `reset`   | Reset database and migrations (⚠️ **deletes all data and migrations**) |
 | `migrate` | Apply EF Core migrations (creates initial migration if none exist) |
+| `seed`    | Populate database with realistic test data for development |
 | `logs`    | Show database logs |
 | `connect` | Connect to database via psql |
 | `backup`  | Create a database backup |
@@ -97,6 +138,10 @@ Convenient scripts are provided for database operations:
 # Start database with migrations
 .\db.ps1 start          # Windows
 ./db.sh start           # Linux/macOS
+
+# Seed database with test data
+.\db.ps1 seed           # Windows
+./db.sh seed            # Linux/macOS
 
 # Apply migrations only (auto-creates initial migration if needed)
 .\db.ps1 migrate        # Windows
@@ -122,14 +167,18 @@ This API has been successfully tested and verified:
 - ✅ **Flexible User Roles**: Supports string and integer role values during registration
 - ✅ **API Documentation**: Scalar UI available at `/scalar/v1`
 - ✅ **Database Management**: Convenient PowerShell and Bash scripts
+- ✅ **Test Data Seeding**: Comprehensive seeding functionality for development
+- ✅ **Continuous Integration**: GitHub Actions workflow with automated testing and coverage reports
+- ✅ **Postman Collection**: Pre-configured API testing collection
 
 ### Quick Test
 
 To verify the setup is working:
 
 1. Start the database: `.\db.ps1 start`
-2. Run the API: `cd src/WebForum.Api && dotnet run`
-3. Test registration:
+2. Seed test data: `.\db.ps1 seed`
+3. Run the API: `cd src/WebForum.Api && dotnet run`
+4. Test registration:
    ```bash
    curl -X POST http://localhost:5043/api/auth/register \
         -H "Content-Type: application/json" \
@@ -146,22 +195,25 @@ Expected response: JSON with JWT token and user information.
 - `POST /api/auth/refresh` - Refresh JWT token
 
 ### Users
+- `GET /api/users/{id}` - Get user profile by ID
 - `GET /api/users/me` - Get current user profile
 - `PUT /api/users/me` - Update current user profile
 - `GET /api/users/me/posts` - Get current user's posts
 
 ### Posts
-- `GET /api/posts` - Get all posts (paginated)
+- `GET /api/posts` - Get all posts (paginated with comprehensive filtering)
 - `GET /api/posts/{id}` - Get specific post
 - `POST /api/posts` - Create new post
-- `GET /api/posts/{id}/comments` - Get post comments
-- `POST /api/posts/{id}/comments` - Create new comment on a post
 - `POST /api/posts/{id}/like` - Like a post
 - `DELETE /api/posts/{id}/like` - Unlike a post
+- `GET /api/posts/{id}/comments` - Get post comments
+- `POST /api/posts/{id}/comments` - Create new comment on a post
 
-### Moderation
-- `POST /api/moderation/posts/{id}/tag` - Tag a post
-- `DELETE /api/moderation/posts/{id}/tag` - Remove tag from post
+### Moderation (Moderator only)
+- `POST /api/posts/{id}/tags` - Tag a post for moderation
+- `DELETE /api/posts/{id}/tags` - Remove tag from post
+- `DELETE /api/posts/{id}/tags/{tag}` - Remove specific tag from post
+- `GET /api/posts/tagged` - Get all tagged posts (paginated)
 
 For detailed API documentation, visit the Scalar UI at `/scalar/v1` when the API is running.
 
@@ -171,21 +223,24 @@ For detailed API documentation, visit the Scalar UI at `/scalar/v1` when the API
 
 ```
 ├── src/
-│   └── WebForum.Api/           # Main API project
-│       ├── Controllers/        # API controllers
-│       ├── Data/              # Database context
-│       ├── DTOs/              # Data transfer objects  
-│       ├── Models/            # Entity models
-│       ├── Services/          # Business logic services
-│       │   ├── Interfaces/    # Service interfaces
-│       │   └── Implementations/ # Service implementations
-│       └── Migrations/        # EF Core migrations
+│   ├── WebForum.Api/           # Main API project
+│   │   ├── Controllers/        # API controllers
+│   │   ├── Data/              # Database context
+│   │   ├── DTOs/              # Data transfer objects  
+│   │   ├── Models/            # Entity models
+│   │   ├── Services/          # Business logic services
+│   │   │   ├── Interfaces/    # Service interfaces
+│   │   │   └── Implementations/ # Service implementations
+│   │   └── Migrations/        # EF Core migrations
+│   └── WebForum.DataSeeder/   # Database seeding utility
 ├── tests/
 │   ├── WebForum.UnitTests/    # Unit tests
 │   └── WebForum.IntegrationTests/ # Integration tests
 ├── docs/                      # Documentation
 ├── docker-compose.yml         # Docker services
-└── db.ps1 / db.sh            # Database management scripts
+├── db.ps1 / db.sh            # Database management scripts
+├── WebForum.postman_collection.json # Postman API collection
+└── .github/workflows/ci.yml   # GitHub Actions CI pipeline
 ```
 
 ### Running Tests
@@ -198,6 +253,11 @@ dotnet test
 dotnet test tests/WebForum.UnitTests/
 
 # Run integration tests only
+dotnet test tests/WebForum.IntegrationTests/
+
+# Run data seeder manually
+dotnet run --project src/WebForum.DataSeeder
+```
 dotnet test tests/WebForum.IntegrationTests/
 ```
 
@@ -346,3 +406,107 @@ JWT configuration in `appsettings.json`:
   }
 }
 ```
+
+## Database Schema
+
+The forum system consists of five main entities:
+- **Users**: System users with different roles (User, Moderator)
+- **Posts**: Main content created by users
+- **Comments**: Responses to posts
+- **Likes**: User likes on posts (one per user per post)
+- **PostTags**: Tags applied to posts (primarily for moderation)
+
+```mermaid
+---
+title: Web Forum Database Schema
+---
+erDiagram
+    USER ||--o{ POST : creates
+    USER ||--o{ COMMENT : writes
+    USER ||--o{ LIKE : gives
+    USER ||--o{ POST_TAG : applies
+    POST ||--o{ COMMENT : has
+    POST ||--o{ LIKE : receives
+    POST ||--o{ POST_TAG : tagged_with
+    
+    USER {
+        int Id PK
+        string Username UK "3-50 chars"
+        string Email UK "Valid email format"
+        string PasswordHash "BCrypt hashed"
+        enum Role "User or Moderator"
+        DateTimeOffset CreatedAt
+        DateTimeOffset UpdatedAt
+    }
+    
+    POST {
+        int Id PK
+        string Title "Max 200 chars"
+        string Content "Post body text"
+        int AuthorId FK
+        DateTimeOffset CreatedAt
+        DateTimeOffset UpdatedAt
+    }
+    
+    COMMENT {
+        int Id PK
+        string Content "Comment text"
+        int PostId FK
+        int AuthorId FK
+        DateTimeOffset CreatedAt
+        DateTimeOffset UpdatedAt
+    }
+    
+    LIKE {
+        int Id PK
+        int PostId FK
+        int UserId FK
+        DateTimeOffset CreatedAt
+    }
+    
+    POST_TAG {
+        int Id PK
+        int PostId FK
+        string Tag "Max 50 chars"
+        int CreatedByUserId FK
+        DateTimeOffset CreatedAt
+    }
+```
+
+### Database Business Rules
+
+1. **User Authentication**: Users must be authenticated to post, comment, or like
+2. **Like Constraints**: 
+   - Each user can only like a post once
+   - Users cannot like their own posts
+3. **Role-Based Access**:
+   - Regular users: Can post, comment, and like
+   - Moderators: All regular user capabilities + can tag posts
+4. **Post Tags**: Used primarily for moderation (e.g., "misleading-information", "false-information")
+5. **No Deletion Policy**: Posts and comments cannot be deleted (ethical reasons per requirements)
+6. **Anonymous Reading**: Posts can be viewed without authentication
+
+## CI/CD & Testing
+
+### GitHub Actions Workflow
+
+The repository includes a comprehensive CI/CD pipeline that automatically:
+
+- ✅ **Builds** the solution with .NET 9
+- ✅ **Generates migrations** if missing during CI
+- ✅ **Runs unit tests** with code coverage
+- ✅ **Runs integration tests** with isolated test databases
+- ✅ **Generates coverage reports** with detailed metrics
+- ✅ **Uploads artifacts** for coverage analysis
+- ✅ **Provides coverage summaries** in pull requests
+
+### Coverage Reports
+
+The CI pipeline generates comprehensive coverage reports including:
+- Line coverage percentages
+- Branch coverage analysis
+- Class-level coverage breakdown
+- HTML reports with detailed analysis
+- Badge generation for repository status
+
+Coverage reports are automatically uploaded as artifacts and can be downloaded from the Actions tab.
