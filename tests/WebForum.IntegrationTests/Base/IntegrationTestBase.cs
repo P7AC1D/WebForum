@@ -6,7 +6,8 @@ namespace WebForum.IntegrationTests.Base;
 /// <summary>
 /// Base class for integration tests providing common setup and utilities
 /// </summary>
-public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>
+[Collection("WebForum Integration Tests")]
+public abstract class IntegrationTestBase
 {
   protected readonly WebForumTestFactory Factory;
   protected readonly HttpClient Client;
