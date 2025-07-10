@@ -22,14 +22,6 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_FILE }}
 
@@ -55,18 +47,110 @@ jobs:
           echo "Migrations already exist."
         fi
 
-    - name: Run unit tests
+    - name: Run unit tests with coverage
       run: |
         dotnet test tests/WebForum.UnitTests/WebForum.UnitTests.csproj \
           --configuration Release \
           --no-build \
-          --verbosity normal
+          --verbosity normal \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage-results/unit \
+          --logger trx \
+          --logger "console;verbosity=normal"
 
-    - name: Run integration tests
+    - name: Run integration tests with coverage
       run: |
         dotnet test tests/WebForum.IntegrationTests/WebForum.IntegrationTests.csproj \
           --configuration Release \
           --no-build \
           --verbosity normal \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage-results/integration \
+          --logger trx \
           --logger "console;verbosity=detailed" \
           -- -parallel none -maxthreads 1
+
+    - name: Install ReportGenerator tool
+      run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+    - name: Generate coverage report
+      run: |
+        reportgenerator \
+          -reports:"coverage-results/**/coverage.cobertura.xml" \
+          -targetdir:coverage-report \
+          -reporttypes:"Html;Cobertura;JsonSummary;Badges" \
+          -verbosity:Warning
+
+    - name: Upload coverage reports to artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage-report/
+        retention-days: 30
+
+    - name: Display coverage summary
+      run: |
+        echo "## 📊 Code Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "coverage-report/Summary.json" ]; then
+          echo "### Overall Coverage" >> $GITHUB_STEP_SUMMARY
+          cat coverage-report/Summary.json | jq -r '
+            "- **Line Coverage:** " + (.summary.linecoverage | tostring) + "%" +
+            "\n- **Branch Coverage:** " + (.summary.branchcoverage | tostring) + "%" +
+            "\n- **Covered Lines:** " + (.summary.coveredlines | tostring) + " / " + (.summary.coverablelines | tostring) +
+            "\n- **Total Classes:** " + (.summary.classes | tostring)
+          ' >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Key Services Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Line Coverage | Branch Coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------------|-----------------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract coverage for critical security services
+          cat coverage-report/Summary.json | jq -r '
+            .coverage[] | 
+            select(.name | contains("SecurityService") or contains("SanitizationService") or contains("AuthService")) |
+            "| " + .name + " | " + (.linecoverage | tostring) + "% | " + (.branchcoverage | tostring) + "% |"
+          ' >> $GITHUB_STEP_SUMMARY || echo "| Security Services | See detailed report | - |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📁 **Detailed Report:** Available in the coverage-report artifact" >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          try {
+            const summaryData = JSON.parse(fs.readFileSync('coverage-report/Summary.json', 'utf8'));
+            const coverage = summaryData.summary;
+            
+            const coverageComment = `## 📊 Code Coverage Report
+            
+            | Metric | Coverage |
+            |--------|----------|
+            | **Line Coverage** | ${coverage.linecoverage}% |
+            | **Branch Coverage** | ${coverage.branchcoverage}% |
+            | **Covered Lines** | ${coverage.coveredlines} / ${coverage.coverablelines} |
+            
+            ### 🛡️ Security Services Coverage
+            Our Tier 1 critical security services are prioritized for maximum coverage.
+            
+            ${coverage.linecoverage >= 80 ? '✅' : coverage.linecoverage >= 70 ? '⚠️' : '❌'} **Overall coverage: ${coverage.linecoverage}%**
+            
+            📁 Detailed HTML report available in workflow artifacts.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: coverageComment
+            });
+          } catch (error) {
+            console.log('Could not post coverage comment:', error.message);
+          }
