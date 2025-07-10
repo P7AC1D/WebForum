@@ -89,33 +89,33 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       try
       {
         Console.WriteLine($"Connection attempt {i + 1}/{maxRetries} to {ConnectionString}");
-        
+
         using var testConnection = new Npgsql.NpgsqlConnection(ConnectionString);
         await testConnection.OpenAsync();
-        
+
         // Test that we can actually query the database
         using var testCommand = testConnection.CreateCommand();
         testCommand.CommandText = "SELECT 1";
         var result = await testCommand.ExecuteScalarAsync();
-        
+
         Console.WriteLine($"Database connection successful! Query result: {result}");
-        
+
         // Connection successful, keep a permanent connection for the factory
         _dbConnection = new Npgsql.NpgsqlConnection(ConnectionString);
         await _dbConnection.OpenAsync();
-        
+
         break; // Success - exit retry loop
       }
       catch (Exception ex) when (i < maxRetries - 1)
       {
         lastException = ex;
         Console.WriteLine($"Connection attempt {i + 1} failed: {ex.Message}");
-        
+
         // Close any partial connection
         _dbConnection?.Close();
         _dbConnection?.Dispose();
         _dbConnection = null;
-        
+
         // Retry with exponential backoff
         await Task.Delay(delay);
         delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 1.2, 5000));
@@ -136,7 +136,7 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       Console.WriteLine(errorMessage);
       throw new InvalidOperationException(errorMessage, lastException);
     }
-    
+
     Console.WriteLine("Database initialization completed successfully!");
   }
 
@@ -176,38 +176,38 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       // Add test database context
       services.AddDbContext<ForumDbContext>(options =>
           {
-          options.UseNpgsql(ConnectionString);
-          options.EnableSensitiveDataLogging();
-          options.EnableDetailedErrors();
-        });
+            options.UseNpgsql(ConnectionString);
+            options.EnableSensitiveDataLogging();
+            options.EnableDetailedErrors();
+          });
 
       // Reconfigure JWT Bearer authentication for test environment
       services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
           {
-          var testSecretKey = "TestSecretKeyThatIsAtLeast32CharactersLongForTesting!";
-          var testIssuer = "WebForumTestApi";
-          var testAudience = "WebForumTestUsers";
+            var testSecretKey = "TestSecretKeyThatIsAtLeast32CharactersLongForTesting!";
+            var testIssuer = "WebForumTestApi";
+            var testAudience = "WebForumTestUsers";
 
-          options.TokenValidationParameters = new TokenValidationParameters
-          {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = testIssuer,
-            ValidAudience = testAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(testSecretKey)),
-            ClockSkew = TimeSpan.Zero
-          };
-        });
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+              ValidateIssuer = true,
+              ValidateAudience = true,
+              ValidateLifetime = true,
+              ValidateIssuerSigningKey = true,
+              ValidIssuer = testIssuer,
+              ValidAudience = testAudience,
+              IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(testSecretKey)),
+              ClockSkew = TimeSpan.Zero
+            };
+          });
 
       // Configure logging for tests
       services.AddLogging(builder =>
           {
-          builder.ClearProviders();
-          builder.AddConsole();
-          builder.SetMinimumLevel(LogLevel.Warning);
-        });
+            builder.ClearProviders();
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Warning);
+          });
     });
 
     builder.UseEnvironment("Testing");
@@ -221,42 +221,74 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
     using var scope = CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ForumDbContext>();
 
+    // Debug: Log the expected vs actual connection strings
+    Console.WriteLine($"Test container connection: {ConnectionString}");
+    Console.WriteLine($"EF Core connection: {context.Database.GetConnectionString()}");
+
     // Add retry logic for CI environments where containers might still be initializing
-    var maxRetries = 5;
-    var delay = TimeSpan.FromMilliseconds(200);
-    
+    var maxRetries = 10;
+    var delay = TimeSpan.FromMilliseconds(500);
+
     for (int retry = 0; retry < maxRetries; retry++)
     {
       try
       {
-        // Ensure database is created and migrations are applied
-        await context.Database.MigrateAsync();
-        
-        // Verify that all required tables exist
+        Console.WriteLine($"Migration attempt {retry + 1}/{maxRetries}");
+
+        // First ensure we can connect to the database
         var connection = context.Database.GetDbConnection();
         if (connection.State != System.Data.ConnectionState.Open)
+        {
           await connection.OpenAsync();
-          
+        }
+
+        // Test basic connectivity
+        using var testCommand = connection.CreateCommand();
+        testCommand.CommandText = "SELECT 1";
+        await testCommand.ExecuteScalarAsync();
+
+        Console.WriteLine("Database connection verified, running migrations...");
+
+        // Debug: Check the actual connection string being used
+        Console.WriteLine($"EF Core using connection: {context.Database.GetConnectionString()}");
+
+        // Now run migrations
+        await context.Database.MigrateAsync();
+
+        Console.WriteLine("Migrations completed, verifying tables...");
+
+        // Verify that all required tables exist using the same connection
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'PostTags')";
         var tableExists = (bool)(await command.ExecuteScalarAsync() ?? false);
-        
+
         if (tableExists)
         {
+          Console.WriteLine("Database schema verification successful!");
           // Add delay to ensure migration is fully committed in CI environment
           await Task.Delay(100);
           return;
         }
+        else
+        {
+          Console.WriteLine("PostTags table not found, retrying...");
+        }
       }
-      catch (Exception) when (retry < maxRetries - 1)
+      catch (Exception ex) when (retry < maxRetries - 1)
       {
+        Console.WriteLine($"Migration attempt {retry + 1} failed: {ex.Message}");
         // Log and retry for CI environment timing issues
         await Task.Delay(delay);
-        delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 1.5); // Exponential backoff
+        delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 1.5, 5000)); // Exponential backoff with cap
         continue;
       }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Final migration attempt {retry + 1} failed: {ex.Message}");
+        throw;
+      }
     }
-    
+
     throw new InvalidOperationException("Failed to initialize database after multiple retries");
   }
 
@@ -274,32 +306,32 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       // Add small delays between operations to prevent race conditions in CI
       await TruncateTableIfExistsAsync(context, "PostTags");
       await Task.Delay(50);
-      
+
       await TruncateTableIfExistsAsync(context, "Likes");
       await Task.Delay(50);
-      
+
       await TruncateTableIfExistsAsync(context, "Comments");
       await Task.Delay(50);
-      
+
       await TruncateTableIfExistsAsync(context, "Posts");
       await Task.Delay(50);
-      
+
       await TruncateTableIfExistsAsync(context, "Users");
       await Task.Delay(50);
 
       // Reset sequences - only if they exist
       await ResetSequenceIfExistsAsync(context, "Users_Id_seq");
       await Task.Delay(25);
-      
+
       await ResetSequenceIfExistsAsync(context, "Posts_Id_seq");
       await Task.Delay(25);
-      
+
       await ResetSequenceIfExistsAsync(context, "Comments_Id_seq");
       await Task.Delay(25);
-      
+
       await ResetSequenceIfExistsAsync(context, "Likes_Id_seq");
       await Task.Delay(25);
-      
+
       await ResetSequenceIfExistsAsync(context, "PostTags_Id_seq");
       await Task.Delay(25);
     }
@@ -317,7 +349,7 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       // Use ExecuteSqlRaw since table names cannot be parameterized, but validate input
       if (!IsValidTableName(tableName))
         throw new ArgumentException($"Invalid table name: {tableName}");
-        
+
 #pragma warning disable EF1002 // Risk of vulnerability to SQL injection
       await context.Database.ExecuteSqlRawAsync($"TRUNCATE TABLE \"{tableName}\" CASCADE");
 #pragma warning restore EF1002 // Risk of vulnerability to SQL injection
@@ -335,7 +367,7 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       // Use ExecuteSqlRaw since sequence names cannot be parameterized, but validate input
       if (!IsValidSequenceName(sequenceName))
         throw new ArgumentException($"Invalid sequence name: {sequenceName}");
-        
+
 #pragma warning disable EF1002 // Risk of vulnerability to SQL injection
       await context.Database.ExecuteSqlRawAsync($"ALTER SEQUENCE \"{sequenceName}\" RESTART WITH 1");
 #pragma warning restore EF1002 // Risk of vulnerability to SQL injection
