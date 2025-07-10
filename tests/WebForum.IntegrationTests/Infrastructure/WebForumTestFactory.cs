@@ -34,7 +34,9 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       if (_dbContainer == null)
         throw new InvalidOperationException("Database container not initialized");
 
-      var host = _dbContainer.Hostname;
+      // Use localhost for connection from host to container
+      // This works on both Windows and Linux CI environments
+      var host = "localhost";
       var port = _dbContainer.GetMappedPublicPort(5432);
       return $"Host={host};Port={port};Database=webforum_test;Username=postgres;Password=test_password";
     }
@@ -64,21 +66,29 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
   /// </summary>
   public async Task InitializeAsync()
   {
-    // Build and start PostgreSQL container without any wait strategy to avoid exec issues
+    // Build and start PostgreSQL container with proper wait strategies
     _dbContainer = new ContainerBuilder()
         .WithImage("postgres:15-alpine")
         .WithEnvironment("POSTGRES_DB", "webforum_test")
         .WithEnvironment("POSTGRES_USER", "postgres")
         .WithEnvironment("POSTGRES_PASSWORD", "test_password")
         .WithPortBinding(0, 5432) // Use random available port
+        .WithWaitStrategy(Wait.ForUnixContainer()
+            .UntilPortIsAvailable(5432)
+            .UntilCommandIsCompleted("pg_isready", "-d", "webforum_test", "-U", "postgres"))
         .WithCleanUp(true)
         .Build();
 
     await _dbContainer.StartAsync();
 
-    // Test connection with retry logic
-    var maxRetries = 15;
-    var delay = TimeSpan.FromSeconds(2);
+    // Log connection details for debugging CI issues
+    var host = "localhost";
+    var port = _dbContainer.GetMappedPublicPort(5432);
+    Console.WriteLine($"Database container started. Connection: Host={host}, Port={port}");
+
+    // Test connection with retry logic and database readiness
+    var maxRetries = 30;
+    var delay = TimeSpan.FromMilliseconds(500);
 
     for (int i = 0; i < maxRetries; i++)
     {
@@ -86,12 +96,26 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       {
         _dbConnection = new Npgsql.NpgsqlConnection(ConnectionString);
         await _dbConnection.OpenAsync();
+        
+        // Test that we can actually query the database
+        using var testCommand = _dbConnection.CreateCommand();
+        testCommand.CommandText = "SELECT 1";
+        await testCommand.ExecuteScalarAsync();
+        
+        await _dbConnection.CloseAsync();
+        
         break; // Success - exit retry loop
       }
       catch (Exception) when (i < maxRetries - 1)
       {
-        // Log and retry
+        // Close any partial connection
+        _dbConnection?.Close();
+        _dbConnection?.Dispose();
+        _dbConnection = null;
+        
+        // Log and retry with exponential backoff
         await Task.Delay(delay);
+        delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 1.2, 5000));
       }
     }
 
