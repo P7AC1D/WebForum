@@ -95,24 +95,42 @@ jobs:
         
         if [ -f "coverage-report/Summary.json" ]; then
           echo "### Overall Coverage" >> $GITHUB_STEP_SUMMARY
-          cat coverage-report/Summary.json | jq -r '
-            "- **Line Coverage:** " + (.summary.linecoverage | tostring) + "%" +
-            "\n- **Branch Coverage:** " + (.summary.branchcoverage | tostring) + "%" +
-            "\n- **Covered Lines:** " + (.summary.coveredlines | tostring) + " / " + (.summary.coverablelines | tostring) +
-            "\n- **Total Classes:** " + (.summary.classes | tostring)
-          ' >> $GITHUB_STEP_SUMMARY
+          
+          # Extract overall summary with error handling
+          LINE_COV=$(cat coverage-report/Summary.json | jq -r '.summary.linecoverage // "N/A"')
+          BRANCH_COV=$(cat coverage-report/Summary.json | jq -r '.summary.branchcoverage // "N/A"')
+          COVERED_LINES=$(cat coverage-report/Summary.json | jq -r '.summary.coveredlines // "N/A"')
+          TOTAL_LINES=$(cat coverage-report/Summary.json | jq -r '.summary.coverablelines // "N/A"')
+          TOTAL_CLASSES=$(cat coverage-report/Summary.json | jq -r '.summary.classes // "N/A"')
+          
+          echo "- **Line Coverage:** ${LINE_COV}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch Coverage:** ${BRANCH_COV}%" >> $GITHUB_STEP_SUMMARY  
+          echo "- **Covered Lines:** ${COVERED_LINES} / ${TOTAL_LINES}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Classes:** ${TOTAL_CLASSES}" >> $GITHUB_STEP_SUMMARY
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🎯 Key Services Coverage" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Line Coverage | Branch Coverage |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|---------------|-----------------|" >> $GITHUB_STEP_SUMMARY
           
-          # Extract coverage for critical security services
-          cat coverage-report/Summary.json | jq -r '
-            .coverage[] | 
-            select(.name | contains("SecurityService") or contains("SanitizationService") or contains("AuthService")) |
-            "| " + .name + " | " + (.linecoverage | tostring) + "% | " + (.branchcoverage | tostring) + "% |"
-          ' >> $GITHUB_STEP_SUMMARY || echo "| Security Services | See detailed report | - |" >> $GITHUB_STEP_SUMMARY
+          # Check if coverage array exists and has data
+          HAS_COVERAGE=$(cat coverage-report/Summary.json | jq -r 'has("coverage") and (.coverage | length > 0)')
+          
+          if [ "$HAS_COVERAGE" = "true" ]; then
+            # Extract coverage for critical security services safely
+            cat coverage-report/Summary.json | jq -r '
+              .coverage[]? | 
+              select(.name? and (.name | test("SecurityService|SanitizationService|AuthService"; "i"))) |
+              "| " + (.name // "Unknown") + " | " + ((.linecoverage // 0) | tostring) + "% | " + ((.branchcoverage // 0) | tostring) + "% |"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          fi
+          
+          # Add fallback if no security services found
+          if ! grep -q "SecurityService\|SanitizationService\|AuthService" $GITHUB_STEP_SUMMARY 2>/dev/null; then
+            echo "| Tier 1 Security Services | See detailed report | - |" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "⚠️ Coverage report not found. Please check the test execution." >> $GITHUB_STEP_SUMMARY
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
