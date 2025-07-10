@@ -21,7 +21,7 @@ namespace WebForum.IntegrationTests.Infrastructure;
 /// </summary>
 public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-  private IContainer? _dbContainer;
+  private PostgreSqlContainer? _dbContainer;
   private DbConnection? _dbConnection;
 
   /// <summary>
@@ -34,11 +34,9 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       if (_dbContainer == null)
         throw new InvalidOperationException("Database container not initialized");
 
-      // Use localhost for connection from host to container
-      // This works on both Windows and Linux CI environments
-      var host = "localhost";
-      var port = _dbContainer.GetMappedPublicPort(5432);
-      return $"Host={host};Port={port};Database=webforum_test;Username=postgres;Password=test_password";
+      // Use the built-in connection string from PostgreSqlContainer
+      // This handles networking properly across different environments
+      return _dbContainer.GetConnectionString();
     }
   }
 
@@ -66,63 +64,80 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
   /// </summary>
   public async Task InitializeAsync()
   {
-    // Build and start PostgreSQL container with proper wait strategies
-    _dbContainer = new ContainerBuilder()
+    // Build and start PostgreSQL container using the specialized PostgreSqlContainer
+    _dbContainer = new PostgreSqlBuilder()
         .WithImage("postgres:15-alpine")
-        .WithEnvironment("POSTGRES_DB", "webforum_test")
-        .WithEnvironment("POSTGRES_USER", "postgres")
-        .WithEnvironment("POSTGRES_PASSWORD", "test_password")
-        .WithPortBinding(0, 5432) // Use random available port
-        .WithWaitStrategy(Wait.ForUnixContainer()
-            .UntilPortIsAvailable(5432)
-            .UntilCommandIsCompleted("pg_isready", "-d", "webforum_test", "-U", "postgres"))
+        .WithDatabase("webforum_test")
+        .WithUsername("postgres")
+        .WithPassword("test_password")
         .WithCleanUp(true)
         .Build();
 
     await _dbContainer.StartAsync();
 
     // Log connection details for debugging CI issues
-    var host = "localhost";
-    var port = _dbContainer.GetMappedPublicPort(5432);
-    Console.WriteLine($"Database container started. Connection: Host={host}, Port={port}");
+    var connectionString = _dbContainer.GetConnectionString();
+    Console.WriteLine($"Database container started. Connection: {connectionString}");
 
     // Test connection with retry logic and database readiness
     var maxRetries = 30;
     var delay = TimeSpan.FromMilliseconds(500);
+    Exception? lastException = null;
 
     for (int i = 0; i < maxRetries; i++)
     {
       try
       {
+        Console.WriteLine($"Connection attempt {i + 1}/{maxRetries} to {ConnectionString}");
+        
+        using var testConnection = new Npgsql.NpgsqlConnection(ConnectionString);
+        await testConnection.OpenAsync();
+        
+        // Test that we can actually query the database
+        using var testCommand = testConnection.CreateCommand();
+        testCommand.CommandText = "SELECT 1";
+        var result = await testCommand.ExecuteScalarAsync();
+        
+        Console.WriteLine($"Database connection successful! Query result: {result}");
+        
+        // Connection successful, keep a permanent connection for the factory
         _dbConnection = new Npgsql.NpgsqlConnection(ConnectionString);
         await _dbConnection.OpenAsync();
         
-        // Test that we can actually query the database
-        using var testCommand = _dbConnection.CreateCommand();
-        testCommand.CommandText = "SELECT 1";
-        await testCommand.ExecuteScalarAsync();
-        
-        await _dbConnection.CloseAsync();
-        
         break; // Success - exit retry loop
       }
-      catch (Exception) when (i < maxRetries - 1)
+      catch (Exception ex) when (i < maxRetries - 1)
       {
+        lastException = ex;
+        Console.WriteLine($"Connection attempt {i + 1} failed: {ex.Message}");
+        
         // Close any partial connection
         _dbConnection?.Close();
         _dbConnection?.Dispose();
         _dbConnection = null;
         
-        // Log and retry with exponential backoff
+        // Retry with exponential backoff
         await Task.Delay(delay);
         delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 1.2, 5000));
+      }
+      catch (Exception ex)
+      {
+        lastException = ex;
+        Console.WriteLine($"Final connection attempt {i + 1} failed: {ex.Message}");
+        break;
       }
     }
 
     if (_dbConnection?.State != System.Data.ConnectionState.Open)
     {
-      throw new InvalidOperationException("Failed to connect to PostgreSQL container after retries");
+      var errorMessage = $"Failed to connect to PostgreSQL container after {maxRetries} retries. " +
+                        $"Connection string: {ConnectionString}. " +
+                        $"Last error: {lastException?.Message}";
+      Console.WriteLine(errorMessage);
+      throw new InvalidOperationException(errorMessage, lastException);
     }
+    
+    Console.WriteLine("Database initialization completed successfully!");
   }
 
   /// <summary>
