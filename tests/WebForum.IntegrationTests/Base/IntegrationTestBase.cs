@@ -1,6 +1,4 @@
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using WebForum.IntegrationTests.Infrastructure;
 
 namespace WebForum.IntegrationTests.Base;
@@ -8,7 +6,7 @@ namespace WebForum.IntegrationTests.Base;
 /// <summary>
 /// Base class for integration tests providing common setup and utilities
 /// </summary>
-public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>, IAsyncLifetime
+public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>
 {
   protected readonly WebForumTestFactory Factory;
   protected readonly HttpClient Client;
@@ -20,22 +18,23 @@ public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>, 
   }
 
   /// <summary>
-  /// Initialize before each test - ensure clean database
+  /// Sets up a clean database for the test
   /// </summary>
-  public async Task InitializeAsync()
+  protected async Task InitializeTestAsync()
   {
+    // First ensure database is created and migrations are applied
     await Factory.EnsureDatabaseCreatedAsync();
+    
+    // Then clean any existing data
     await Factory.CleanDatabaseAsync();
   }
 
   /// <summary>
-  /// Clean up after each test
+  /// Cleans up after the test
   /// </summary>
-  public Task DisposeAsync()
+  protected async Task CleanupTestAsync()
   {
-    // Optional: clean up after each test
-    // We can skip this if InitializeAsync is sufficient
-    return Task.CompletedTask;
+    await Factory.CleanDatabaseAsync();
   }
 
   /// <summary>
@@ -177,37 +176,5 @@ public abstract class IntegrationTestBase : IClassFixture<WebForumTestFactory>, 
       PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
     });
     return new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-  }
-
-  /// <summary>
-  /// Verify database is clean (for debugging test isolation issues)
-  /// </summary>
-  protected async Task<bool> IsDatabaseCleanAsync()
-  {
-    using var scope = Factory.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<WebForum.Api.Data.ForumDbContext>();
-    
-    var userCount = await context.Users.CountAsync();
-    var postCount = await context.Posts.CountAsync();
-    var commentCount = await context.Comments.CountAsync();
-    var likeCount = await context.Likes.CountAsync();
-    
-    return userCount == 0 && postCount == 0 && commentCount == 0 && likeCount == 0;
-  }
-
-  /// <summary>
-  /// Get current database counts (for debugging)
-  /// </summary>
-  protected async Task<string> GetDatabaseCountsAsync()
-  {
-    using var scope = Factory.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<WebForum.Api.Data.ForumDbContext>();
-    
-    var userCount = await context.Users.CountAsync();
-    var postCount = await context.Posts.CountAsync();
-    var commentCount = await context.Comments.CountAsync();
-    var likeCount = await context.Likes.CountAsync();
-    
-    return $"Users: {userCount}, Posts: {postCount}, Comments: {commentCount}, Likes: {likeCount}";
   }
 }

@@ -23,6 +23,7 @@ public class ContentCreationWorkflowTests : IntegrationTestBase
   public async Task CompleteContentLifecycle_CreatePostAddCommentsLike_ShouldWork()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var commenter = await CreateTestUserAsync("commenter", "commenter@example.com");
     var liker = await CreateTestUserAsync("liker", "liker@example.com");
@@ -89,6 +90,7 @@ public class ContentCreationWorkflowTests : IntegrationTestBase
   public async Task CreatePostWithTagging_ShouldAllowTagManagement()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync("tagger", "tagger@example.com");
     var moderator = await CreateTestUserAsync("moderator", "moderator@example.com", UserRoles.Moderator);
 
@@ -133,6 +135,7 @@ public class ContentCreationWorkflowTests : IntegrationTestBase
   public async Task CreatePost_WithInvalidData_ShouldReturnBadRequest()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync();
     var authorClient = CreateAuthenticatedClient(author.Id, author.Username);
 
@@ -163,6 +166,7 @@ public class ContentCreationWorkflowTests : IntegrationTestBase
   public async Task CreateComment_OnNonexistentPost_ShouldReturnNotFound()
   {
     // Arrange
+    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var userClient = CreateAuthenticatedClient(user.Id, user.Username);
 
@@ -182,6 +186,7 @@ public class ContentCreationWorkflowTests : IntegrationTestBase
   public async Task LikePost_MultipleTimes_ShouldToggleLike()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var liker = await CreateTestUserAsync("liker", "liker@example.com");
 
@@ -210,6 +215,7 @@ public class ContentCreationWorkflowTests : IntegrationTestBase
   public async Task CreateComment_WithInvalidData_ShouldReturnBadRequest()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync();
     var post = await CreateTestPostAsync(author.Id);
     var commenterClient = CreateAuthenticatedClient(author.Id, author.Username);
@@ -236,6 +242,7 @@ public class ContentCreationWorkflowTests : IntegrationTestBase
   public async Task MultipleUsersInteraction_ShouldMaintainDataIntegrity()
   {
     // Arrange
+    await InitializeTestAsync();
     var users = await Task.WhenAll(Enumerable.Range(1, 5).Select(i =>
         CreateTestUserAsync($"user{i}", $"user{i}@example.com")));
 

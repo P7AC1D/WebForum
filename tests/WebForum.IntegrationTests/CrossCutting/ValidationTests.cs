@@ -21,6 +21,8 @@ public class ValidationTests : IntegrationTestBase
   public async Task Registration_ShouldValidateRequiredFields()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var invalidRequests = new[]
     {
             new RegistrationRequest { Username = "", Email = "test@test.com", Password = "Test123!" },
@@ -38,12 +40,15 @@ public class ValidationTests : IntegrationTestBase
       response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Registration_ShouldValidateEmailFormat()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var invalidEmails = new[]
     {
             "invalid-email",
@@ -70,12 +75,15 @@ public class ValidationTests : IntegrationTestBase
       response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Registration_ShouldValidatePasswordRequirements()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var weakPasswords = new[]
     {
             "weak",           // Too short (4 characters)
@@ -108,12 +116,14 @@ public class ValidationTests : IntegrationTestBase
     var validResponse = await Client.PostAsJsonAsync("/api/auth/register", validRequest);
     validResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task CreatePost_ShouldValidateRequiredFields()
   {
     // Arrange
+    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -132,12 +142,14 @@ public class ValidationTests : IntegrationTestBase
       response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task CreatePost_ShouldValidateFieldLengths()
   {
     // Arrange
+    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -157,12 +169,14 @@ public class ValidationTests : IntegrationTestBase
       response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task CreateComment_ShouldValidateRequiredFields()
   {
     // Arrange
+    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -194,12 +208,15 @@ public class ValidationTests : IntegrationTestBase
     var nonExistentPostResponse = await authenticatedClient.PostAsJsonAsync("/api/posts/99999/comments", validRequest);
     nonExistentPostResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldRejectMalformedJson()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var malformedJsons = new[]
     {
             "{invalid json}",
@@ -221,12 +238,15 @@ public class ValidationTests : IntegrationTestBase
       response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldRejectOversizedPayloads()
   {
     // Arrange
+    await InitializeTestAsync();
+
     // Create an extremely large payload (assuming there's a limit)
     var oversizedContent = new string('X', 1024 * 1024 * 2); // 2MB payload
 
@@ -246,12 +266,14 @@ public class ValidationTests : IntegrationTestBase
     // Should reject oversized payload (either BadRequest or PayloadTooLarge)
     response.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.RequestEntityTooLarge);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldValidatePaginationParameters()
   {
     // Arrange
+    await InitializeTestAsync();
     var user = await CreateTestUserAsync();
     var authenticatedClient = CreateAuthenticatedClient(user.Id, user.Username, UserRoles.User);
 
@@ -273,12 +295,15 @@ public class ValidationTests : IntegrationTestBase
       response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task Api_ShouldValidateContentType()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var validJson = """{"username": "test", "email": "test@test.com", "password": "Test123!", "confirmPassword": "Test123!"}""";
 
     var invalidContentTypes = new[]
@@ -301,6 +326,7 @@ public class ValidationTests : IntegrationTestBase
       response.StatusCode.Should().BeOneOf(HttpStatusCode.UnsupportedMediaType, HttpStatusCode.BadRequest);
     }
 
+    await CleanupTestAsync();
   }
 
   /// <summary>

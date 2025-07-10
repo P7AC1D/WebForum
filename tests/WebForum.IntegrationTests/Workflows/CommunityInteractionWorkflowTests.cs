@@ -22,6 +22,7 @@ public class CommunityInteractionWorkflowTests : IntegrationTestBase
   public async Task ContentDiscoveryWorkflow_BrowseFilterSort_ShouldWork()
   {
     // Arrange
+    await InitializeTestAsync();
     var testData = await SeedTestDataAsync(userCount: 3, postCount: 15, commentCount: 30, likeCount: 20);
 
     // Act & Assert - Browse all posts with pagination
@@ -70,6 +71,7 @@ public class CommunityInteractionWorkflowTests : IntegrationTestBase
   public async Task SocialEngagementWorkflow_LikeUnlikeViewLikes_ShouldWork()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var users = await Task.WhenAll(Enumerable.Range(1, 5).Select(i =>
         CreateTestUserAsync($"user{i}", $"user{i}@example.com")));
@@ -108,6 +110,7 @@ public class CommunityInteractionWorkflowTests : IntegrationTestBase
   public async Task CommentInteractionWorkflow_ReplyAndThread_ShouldWork()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var commenters = await Task.WhenAll(Enumerable.Range(1, 3).Select(i =>
         CreateTestUserAsync($"commenter{i}", $"commenter{i}@example.com")));
@@ -153,6 +156,7 @@ public class CommunityInteractionWorkflowTests : IntegrationTestBase
   public async Task UserProfileWorkflow_ViewUserAndPosts_ShouldWork()
   {
     // Arrange
+    await InitializeTestAsync();
     var profileUser = await CreateTestUserAsync("profileuser", "profile@example.com");
     var viewer = await CreateTestUserAsync("viewer", "viewer@example.com");
 
@@ -190,6 +194,7 @@ public class CommunityInteractionWorkflowTests : IntegrationTestBase
   public async Task ModerationTaggingWorkflow_ModeratorCanTagAndFilter_ShouldWork()
   {
     // Arrange
+    await InitializeTestAsync();
     var regularUser = await CreateTestUserAsync("user1", "user1@example.com", UserRoles.User);
     var moderator = await CreateTestUserAsync("moderator", "moderator@example.com", UserRoles.Moderator);
 
@@ -227,6 +232,7 @@ public class CommunityInteractionWorkflowTests : IntegrationTestBase
   public async Task CommunityEngagementMetrics_ShouldReflectAccurateData()
   {
     // Arrange
+    await InitializeTestAsync();
     var author = await CreateTestUserAsync("author", "author@example.com");
     var engagers = await Task.WhenAll(Enumerable.Range(1, 10).Select(i =>
         CreateTestUserAsync($"engager{i}", $"engager{i}@example.com")));
@@ -271,6 +277,7 @@ public class CommunityInteractionWorkflowTests : IntegrationTestBase
   public async Task PaginationWorkflow_ShouldHandleLargeDataSets()
   {
     // Arrange
+    await InitializeTestAsync();
     await SeedTestDataAsync(userCount: 5, postCount: 25, commentCount: 50, likeCount: 75);
 
     // Act & Assert - Test pagination through multiple pages

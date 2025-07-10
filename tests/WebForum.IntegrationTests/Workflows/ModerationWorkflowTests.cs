@@ -22,6 +22,8 @@ public class ModerationWorkflowTests : IntegrationTestBase
   public async Task FullModerationWorkflow_ShouldCompleteSuccessfully()
   {
     // Arrange
+    await InitializeTestAsync();
+
     // Create test users
     var moderator = await CreateTestUserAsync("moderator", "moderator@test.com", UserRoles.Moderator);
     var regularUser = await CreateTestUserAsync("user", "user@test.com", UserRoles.User);
@@ -88,12 +90,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var finalTaggedPosts = await taggedPostsAfterRemoval.Content.ReadFromJsonAsync<PagedResult<TaggedPost>>();
     finalTaggedPosts!.Items.Should().NotContain(p => p.Id == createdPost.Id);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_RegularUserCannotAccessModerationEndpoints()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var regularUser = await CreateTestUserAsync("user", "user@test.com", UserRoles.User);
     var userClient = CreateAuthenticatedClient(regularUser.Id, regularUser.Username, regularUser.Role);
 
@@ -120,12 +125,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var taggedPostsResponse = await userClient.GetAsync("/api/posts/tagged");
     taggedPostsResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_UnauthenticatedUserCannotAccessEndpoints()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var unauthenticatedClient = Factory.CreateClient();
 
     // Act & Assert - Unauthenticated requests should be rejected
@@ -138,12 +146,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var taggedPostsResponse = await unauthenticatedClient.GetAsync("/api/posts/tagged");
     taggedPostsResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_CannotTagNonExistentPost()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var moderator = await CreateTestUserAsync("moderator", "moderator@test.com", UserRoles.Moderator);
     var moderatorClient = CreateAuthenticatedClient(moderator.Id, moderator.Username, moderator.Role);
 
@@ -152,12 +163,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var tagResponse = await moderatorClient.PostAsync($"/api/posts/{nonExistentPostId}/tags", null);
     tagResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_CannotTagSamePostTwice()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var moderator = await CreateTestUserAsync("moderator", "moderator@test.com", UserRoles.Moderator);
     var regularUser = await CreateTestUserAsync("user", "user@test.com", UserRoles.User);
 
@@ -182,12 +196,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var secondTagResponse = await moderatorClient.PostAsync($"/api/posts/{createdPost.Id}/tags", null);
     secondTagResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_CannotRemoveTagFromUntaggedPost()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var moderator = await CreateTestUserAsync("moderator", "moderator@test.com", UserRoles.Moderator);
     var regularUser = await CreateTestUserAsync("user", "user@test.com", UserRoles.User);
 
@@ -208,12 +225,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var removeTagResponse = await moderatorClient.DeleteAsync($"/api/posts/{createdPost!.Id}/tags");
     removeTagResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_TaggedPostsListPagination()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var moderator = await CreateTestUserAsync("moderator", "moderator@test.com", UserRoles.Moderator);
     var regularUser = await CreateTestUserAsync("user", "user@test.com", UserRoles.User);
 
@@ -263,12 +283,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var secondPageIds = secondPage.Items.Select(p => p.Id).ToHashSet();
     firstPageIds.Should().NotIntersectWith(secondPageIds);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_InvalidInputValidation()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var moderator = await CreateTestUserAsync("moderator", "moderator@test.com", UserRoles.Moderator);
     var moderatorClient = CreateAuthenticatedClient(moderator.Id, moderator.Username, UserRoles.Moderator);
 
@@ -289,12 +312,15 @@ public class ModerationWorkflowTests : IntegrationTestBase
     var tooLargePageSizeResponse = await moderatorClient.GetAsync("/api/posts/tagged?page=1&pageSize=100");
     tooLargePageSizeResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
+    await CleanupTestAsync();
   }
 
   [Fact]
   public async Task ModerationWorkflow_MultipleModeratorsCanTagDifferentPosts()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var moderator1 = await CreateTestUserAsync("moderator1", "mod1@test.com", UserRoles.Moderator);
     var moderator2 = await CreateTestUserAsync("moderator2", "mod2@test.com", UserRoles.Moderator);
     var regularUser = await CreateTestUserAsync("user", "user@test.com", UserRoles.User);
@@ -353,5 +379,6 @@ public class ModerationWorkflowTests : IntegrationTestBase
     tagged1Data!.Items.Count().Should().Be(2);
     tagged2Data!.Items.Count().Should().Be(2);
 
+    await CleanupTestAsync();
   }
 }

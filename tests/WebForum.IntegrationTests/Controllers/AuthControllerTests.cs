@@ -23,6 +23,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Register_WithValidData_ShouldCreateUser()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var registrationRequest = new RegistrationRequest
     {
       Username = "validuser123",
@@ -58,6 +60,7 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Register_WithDuplicateEmail_ShouldReturnConflict()
   {
     // Arrange
+    await InitializeTestAsync();
     var existingUser = await CreateTestUserAsync("existing", "existing@example.com");
 
     var duplicateRegistrationRequest = new RegistrationRequest
@@ -79,6 +82,7 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Register_WithDuplicateUsername_ShouldReturnConflict()
   {
     // Arrange
+    await InitializeTestAsync();
     var existingUser = await CreateTestUserAsync("existinguser", "existing@example.com");
 
     var duplicateRegistrationRequest = new RegistrationRequest
@@ -107,6 +111,8 @@ public class AuthControllerTests : IntegrationTestBase
       string username, string email, string password, string reason)
   {
     // Arrange
+    await InitializeTestAsync();
+
     var invalidRegistrationRequest = new RegistrationRequest
     {
       Username = username,
@@ -126,6 +132,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Register_WithLongUsername_ShouldReturnBadRequest()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var registrationRequest = new RegistrationRequest
     {
       Username = new string('u', 51), // Over 50 character limit
@@ -145,6 +153,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Login_WithValidCredentials_ShouldReturnToken()
   {
     // Arrange
+    await InitializeTestAsync();
+
     // First register a user
     var registrationRequest = new RegistrationRequest
     {
@@ -185,6 +195,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Login_WithInvalidEmail_ShouldReturnUnauthorized()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var loginRequest = new LoginRequest
     {
       Email = "nonexistent@example.com",
@@ -202,6 +214,7 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Login_WithInvalidPassword_ShouldReturnUnauthorized()
   {
     // Arrange
+    await InitializeTestAsync();
     var existingUser = await CreateTestUserAsync("testuser", "test@example.com");
 
     var loginRequest = new LoginRequest
@@ -224,6 +237,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Login_WithInvalidData_ShouldReturnBadRequest(string email, string password)
   {
     // Arrange
+    await InitializeTestAsync();
+
     var loginRequest = new LoginRequest
     {
       Email = email,
@@ -241,6 +256,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Refresh_WithValidToken_ShouldReturnNewToken()
   {
     // Arrange
+    await InitializeTestAsync();
+
     // Register and login to get initial tokens
     var registrationRequest = new RegistrationRequest
     {
@@ -285,6 +302,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Refresh_WithInvalidToken_ShouldReturnUnauthorized()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var refreshRequest = new RefreshToken
     {
       AccessToken = "invalid.access.token",
@@ -302,6 +321,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Refresh_WithEmptyToken_ShouldReturnBadRequest()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var refreshRequest = new RefreshToken
     {
       AccessToken = "",
@@ -319,6 +340,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task AuthenticationFlow_RegisterLoginRefresh_ShouldMaintainUserIdentity()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var registrationRequest = new RegistrationRequest
     {
       Username = "flowuser",
@@ -372,6 +395,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task Register_WithDifferentRoles_ShouldCreateUsersWithCorrectRoles()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var userRequest = new RegistrationRequest
     {
       Username = "regularuser",
@@ -415,6 +440,8 @@ public class AuthControllerTests : IntegrationTestBase
   public async Task ConcurrentRegistrations_ShouldHandleCorrectly()
   {
     // Arrange
+    await InitializeTestAsync();
+
     var registrationTasks = Enumerable.Range(1, 10).Select(i => new RegistrationRequest
     {
       Username = $"concurrentuser{i}",
