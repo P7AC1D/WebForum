@@ -197,7 +197,6 @@ Expected response: JSON with JWT token and user information.
 ### Users
 - `GET /api/users/{id}` - Get user profile by ID
 - `GET /api/users/me` - Get current user profile
-- `PUT /api/users/me` - Update current user profile
 - `GET /api/users/me/posts` - Get current user's posts
 
 ### Posts
@@ -205,14 +204,12 @@ Expected response: JSON with JWT token and user information.
 - `GET /api/posts/{id}` - Get specific post
 - `POST /api/posts` - Create new post
 - `POST /api/posts/{id}/like` - Like a post
-- `DELETE /api/posts/{id}/like` - Unlike a post
 - `GET /api/posts/{id}/comments` - Get post comments
 - `POST /api/posts/{id}/comments` - Create new comment on a post
 
 ### Moderation (Moderator only)
 - `POST /api/posts/{id}/tags` - Tag a post for moderation
 - `DELETE /api/posts/{id}/tags` - Remove tag from post
-- `DELETE /api/posts/{id}/tags/{tag}` - Remove specific tag from post
 - `GET /api/posts/tagged` - Get all tagged posts (paginated)
 
 For detailed API documentation, visit the Scalar UI at `/scalar/v1` when the API is running.
