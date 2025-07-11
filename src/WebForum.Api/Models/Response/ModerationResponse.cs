@@ -1,8 +1,12 @@
 namespace WebForum.Api.Models.Response;
 
 /// <summary>
-/// Response model for moderation actions
+/// Response model for moderation actions performed on forum posts
 /// </summary>
+/// <remarks>
+/// This model provides confirmation and details when moderators apply or remove
+/// tags from posts for content moderation and regulatory compliance purposes.
+/// </remarks>
 public class ModerationResponse
 {
   /// <summary>
@@ -11,13 +15,15 @@ public class ModerationResponse
   public int PostId { get; set; }
 
   /// <summary>
-  /// Type of moderation action performed
+  /// Type of moderation action performed ("tagged" or "untagged")
   /// </summary>
-  public string Action { get; set; } = string.Empty; // "tagged" or "untagged"
+  /// <example>tagged, untagged</example>
+  public string Action { get; set; } = string.Empty;
 
   /// <summary>
-  /// The tag that was applied or removed
+  /// The moderation tag that was applied or removed
   /// </summary>
+  /// <example>misleading-information, false-information</example>
   public string Tag { get; set; } = string.Empty;
 
   /// <summary>
@@ -31,7 +37,7 @@ public class ModerationResponse
   public string ModeratorUsername { get; set; } = string.Empty;
 
   /// <summary>
-  /// When the moderation action was performed
+  /// When the moderation action was performed (UTC timestamp)
   /// </summary>
   public DateTimeOffset ActionTimestamp { get; set; }
 }

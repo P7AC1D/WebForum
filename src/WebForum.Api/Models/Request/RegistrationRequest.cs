@@ -7,19 +7,24 @@ using WebForum.Api.Models;
 namespace WebForum.Api.Models.Request;
 
 /// <summary>
-/// Request model for user registration
+/// Request model for new user registration with comprehensive validation
 /// </summary>
+/// <remarks>
+/// This model handles user account creation with flexible role assignment,
+/// robust validation, and security considerations. Supports both string and
+/// integer role values for API compatibility.
+/// </remarks>
 public class RegistrationRequest
 {
   /// <summary>
-  /// Username for the new account (3-50 characters)
+  /// Username for the new account (3-50 characters, alphanumeric and underscores allowed)
   /// </summary>
   [Required(ErrorMessage = "Username is required")]
   [StringLength(50, MinimumLength = 3, ErrorMessage = "Username must be between 3 and 50 characters")]
   public string Username { get; set; } = string.Empty;
 
   /// <summary>
-  /// Valid email address for the new account
+  /// Valid email address for the new account (used for authentication and notifications)
   /// </summary>
   [Required(ErrorMessage = "Email is required")]
   [EmailAddress(ErrorMessage = "Please provide a valid email address")]
@@ -27,20 +32,24 @@ public class RegistrationRequest
   public string Email { get; set; } = string.Empty;
 
   /// <summary>
-  /// Password for the new account (8+ characters)
+  /// Password for the new account (8-100 characters, will be securely hashed)
   /// </summary>
   [Required(ErrorMessage = "Password is required")]
   [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
   public string Password { get; set; } = string.Empty;
 
   /// <summary>
-  /// Optional role for the new account (defaults to User)
+  /// Optional role for the new account with flexible JSON serialization (defaults to User)
   /// </summary>
+  /// <remarks>
+  /// Accepts both string ("User", "Moderator") and integer (0, 1) values for API compatibility.
+  /// If not specified, defaults to User role.
+  /// </remarks>
   [JsonConverter(typeof(NullableUserRolesJsonConverter))]
   public UserRoles? Role { get; set; }
 
   /// <summary>
-  /// Validates the registration request data
+  /// Validates the registration request data including business rules and security requirements
   /// </summary>
   /// <returns>List of validation errors, empty if valid</returns>
   public List<string> Validate()
