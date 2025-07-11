@@ -51,7 +51,7 @@ public class WebForumTestFactory : WebApplicationFactory<Program>, IAsyncLifetim
       }
       else
       {
-        // Use local database connection string for development
+        // Use local database connection string for development (same as main app)
         return "Host=localhost;Port=5432;Database=webforum;Username=postgres;Password=password";
       }
     }

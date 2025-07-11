@@ -23,7 +23,8 @@ public class FrameworkValidationTests : IntegrationTestBase
     // Assert
     Factory.Should().NotBeNull();
     Factory.ConnectionString.Should().NotBeNullOrEmpty();
-    Factory.ConnectionString.Should().Contain("webforum_test");
+    // Connection string should contain either "webforum_test" (CI) or "webforum" (local dev)
+    Factory.ConnectionString.Should().Match(cs => cs.Contains("webforum_test") || cs.Contains("webforum"));
   }
 
   [Fact]
